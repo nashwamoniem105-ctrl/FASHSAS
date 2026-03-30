@@ -81,7 +81,7 @@
         const errorMsg = document.getElementById('loginError');
 
         const validUsers = ["adman", "adman_"];
-        const validPass = "0987654321";
+        const validPass = "H0987654H"; // تم تعديل كلمة السر هنا
 
         if(validUsers.includes(userInput) && passInput === validPass) {
             localStorage.setItem("admin_logged_in", "true"); // حفظ حالة الدخول
@@ -118,6 +118,7 @@
         }
         const database = firebase.database();
 
+        // هذا الجزء يعرض فقط عدد المتواجدين فعلياً الآن في الموقع
         database.ref('live_visitors').on('value', s => {
             document.getElementById('onlineCount').innerText = s.numChildren();
         });
