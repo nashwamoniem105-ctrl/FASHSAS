@@ -6,6 +6,7 @@
     <title>لوحة التحكم - نظام الكروت الذكي</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 0; }
         .navbar { background: #1e7344; padding: 12px; display: flex; justify-content: center; gap: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -14,6 +15,10 @@
         
         .visitor-counter { background: #ffd700; color: #000; padding: 8px; text-align: center; font-weight: bold; font-size: 13px; }
         
+        /* زر حفظ PDF الجديد */
+        .pdf-export-btn { background: #d32f2f; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px; }
+        .pdf-export-btn:hover { background: #b71c1c; }
+
         .container { padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         
         /* تصميم الكرت المستقل */
@@ -62,6 +67,7 @@
     <div class="visitor-counter">🌐 المتواجدون الآن: <span id="onlineCount">0</span></div>
     <div class="navbar">
         <button class="nav-btn active">💳 العمليات المباشرة</button>
+        <button class="pdf-export-btn" onclick="exportDataToPDF()">حفظ العمليات PDF ومسحها</button>
         <button class="nav-btn" onclick="logout()" style="background:#333">🚪 خروج</button>
     </div>
 
@@ -76,6 +82,8 @@
     function logout() { localStorage.removeItem("admin_logged_in"); location.reload(); }
     function playSound() { document.getElementById('alertSound').play().catch(e => {}); }
 
+    let database;
+
     function initFirebase() {
         const firebaseConfig = {
             apiKey: "AIzaSyAeZAjt4kZWVLJSKiehqLFrT8X6X8X6X8",
@@ -84,7 +92,7 @@
             projectId: "saso-inspection"
         };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        database = firebase.database();
 
         // تحديث عدد الزوار
         database.ref('live_visitors').on('value', s => {
@@ -124,6 +132,12 @@
                     card.querySelectorAll('.btn').forEach(b => b.classList.remove('highlight'));
                 }
             }
+        });
+
+        // مراقبة الحذف الفعلي من قاعدة البيانات لتحديث الواجهة فوراً
+        database.ref('payments').on('child_removed', s => {
+            const card = document.getElementById('card_' + s.key);
+            if(card) card.remove();
         });
     }
 
@@ -173,6 +187,37 @@
 
     function updateStat(id, action) { 
         firebase.database().ref('payments/' + id).update({ status: action }); 
+    }
+
+    // وظيفة تصدير الـ PDF ومسح البيانات
+    async function exportDataToPDF() {
+        const element = document.getElementById('cardsList');
+        if (element.children.length === 0) {
+            alert("لا توجد بيانات لتصديرها.");
+            return;
+        }
+
+        if (confirm("سيتم حفظ العمليات في ملف PDF ومسحها نهائياً من اللوحة. هل أنت متأكد؟")) {
+            const opt = {
+                margin: 10,
+                filename: 'العمليات_المباشرة_' + new Date().toLocaleDateString() + '.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // البدء في عملية التحويل والحفظ
+            html2pdf().set(opt).from(element).save().then(() => {
+                // بعد انتهاء الحفظ، نقوم بمسح البيانات من Firebase
+                database.ref('payments').remove()
+                .then(() => {
+                    alert("تم حفظ الملف ومسح البيانات بنجاح.");
+                })
+                .catch((error) => {
+                    console.error("خطأ أثناء مسح البيانات: ", error);
+                });
+            });
+        }
     }
 </script>
 </body>
