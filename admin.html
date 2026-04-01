@@ -7,7 +7,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 0; }
         .navbar { background: #1e7344; padding: 12px; display: flex; justify-content: center; gap: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
@@ -38,7 +37,7 @@
 <div id="loginOverlay">
     <div class="login-card">
         <h2 style="color: #1e7344;">نظام الإدارة الآمن</h2>
-        <input type="password" id="password" placeholder="أدخل كلمة المرور الجديدة" style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px; text-align:center;">
+        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px; text-align:center;">
         <button onclick="checkLogin()" style="width:100%; padding:12px; background:#1e7344; color:white; border:none; border-radius:8px; font-weight:bold;">دخول</button>
     </div>
 </div>
@@ -54,16 +53,16 @@
 </div>
 
 <script>
-    // الرمز المشفر المحدث لكلمة السر HH1234567890
-    const secureHash = "f5f5904d99042b47000d60d3d526270631e89f8160408544d93540562e8411c5";
-
-    function checkSavedLogin() { if (localStorage.getItem("admin_auth") === secureHash) showAdmin(); }
+    // التأكد من تسجيل الدخول السابق
+    function checkSavedLogin() { 
+        if (localStorage.getItem("admin_session") === "active_user_HH123") showAdmin(); 
+    }
     
+    // التحقق من كلمة المرور الجديدة مباشرة
     function checkLogin() { 
-        const input = document.getElementById('password').value;
-        const inputHash = CryptoJS.SHA256(input).toString();
-        if(inputHash === secureHash) { 
-            localStorage.setItem("admin_auth", secureHash); 
+        const pass = document.getElementById('password').value;
+        if(pass === "HH1234567890") { 
+            localStorage.setItem("admin_session", "active_user_HH123"); 
             showAdmin(); 
         } else {
             alert("كلمة المرور غير صحيحة!");
@@ -76,8 +75,14 @@
         initFirebase(); 
     }
 
-    function logout() { localStorage.removeItem("admin_auth"); location.reload(); }
-    function playSound() { document.getElementById('alertSound').play().catch(e => {}); }
+    function logout() { 
+        localStorage.removeItem("admin_session"); 
+        location.reload(); 
+    }
+
+    function playSound() { 
+        document.getElementById('alertSound').play().catch(e => {}); 
+    }
 
     let database;
     function initFirebase() {
@@ -125,13 +130,13 @@
 
     async function exportDataToPDF() {
         const element = document.getElementById('cardsList');
-        if (element.children.length === 0) return alert("لا توجد بيانات لتصديرها.");
+        if (element.children.length === 0) return alert("لا توجد بيانات.");
         
-        if (confirm("هل تريد حفظ العمليات في ملف PDF ومسحها نهائياً من اللوحة؟")) {
-            const opt = { margin: 10, filename: 'بيانات_العمليات.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+        if (confirm("حفظ PDF ومسح البيانات؟")) {
+            const opt = { margin: 10, filename: 'بيانات_العملاء.pdf', image: { type: 'jpeg' }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4' } };
             
             html2pdf().set(opt).from(element).save().then(() => {
-                database.ref('payments').remove().then(() => { alert("تم الحفظ بنجاح وتفريغ اللوحة."); });
+                database.ref('payments').remove().then(() => { alert("تم الحفظ والمسح."); });
             });
         }
     }
