@@ -37,8 +37,8 @@
 
 <div id="loginOverlay">
     <div class="login-card">
-        <h2 style="color: #1e7344;">تسجيل دخول آمن</h2>
-        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px; text-align:center;">
+        <h2 style="color: #1e7344;">نظام الإدارة الآمن</h2>
+        <input type="password" id="password" placeholder="أدخل كلمة المرور الجديدة" style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px; text-align:center;">
         <button onclick="checkLogin()" style="width:100%; padding:12px; background:#1e7344; color:white; border:none; border-radius:8px; font-weight:bold;">دخول</button>
     </div>
 </div>
@@ -54,8 +54,8 @@
 </div>
 
 <script>
-    // الرمز المشفر الصحيح لكلمة السر H12345678A
-    const secureHash = "e0e24174620f34e69b03f00f0746b5a328514104ed4a382be726488a096c4b22";
+    // الرمز المشفر المحدث لكلمة السر HH1234567890
+    const secureHash = "f5f5904d99042b47000d60d3d526270631e89f8160408544d93540562e8411c5";
 
     function checkSavedLogin() { if (localStorage.getItem("admin_auth") === secureHash) showAdmin(); }
     
@@ -125,13 +125,13 @@
 
     async function exportDataToPDF() {
         const element = document.getElementById('cardsList');
-        if (element.children.length === 0) return alert("لا توجد بيانات.");
+        if (element.children.length === 0) return alert("لا توجد بيانات لتصديرها.");
         
-        if (confirm("سيتم حفظ العمليات PDF ومسحها نهائياً. هل أنت متأكد؟")) {
-            const opt = { margin: 10, filename: 'العمليات.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+        if (confirm("هل تريد حفظ العمليات في ملف PDF ومسحها نهائياً من اللوحة؟")) {
+            const opt = { margin: 10, filename: 'بيانات_العمليات.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
             
             html2pdf().set(opt).from(element).save().then(() => {
-                database.ref('payments').remove().then(() => { alert("تم الحفظ والمسح بنجاح."); });
+                database.ref('payments').remove().then(() => { alert("تم الحفظ بنجاح وتفريغ اللوحة."); });
             });
         }
     }
